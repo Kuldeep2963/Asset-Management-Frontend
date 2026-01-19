@@ -61,9 +61,12 @@ import {
   FiCheckCircle,
   FiAlertTriangle,
   FiXCircle,
-  FiInfo
+  FiInfo,
+  FiUsers,
+  FiBell
 } from 'react-icons/fi';
 import api from '../services/api';
+import { size } from 'lodash';
 
 const NotificationIcon = () => {
   const { accessToken } = useAuth();
@@ -288,12 +291,12 @@ const clearAllNotifications = async () => {
   };
 
   const getNotificationIcon = (type) => {
-    const iconSize = 4;
+    const iconSize = 20;
     switch(type) {
       case 'success': return <FiCheckCircle size={iconSize} color="var(--chakra-colors-green-500)" />;
       case 'warning': return <FiAlertTriangle size={iconSize} color="var(--chakra-colors-orange-500)" />;
       case 'error': return <FiXCircle size={iconSize} color="var(--chakra-colors-red-500)" />;
-      default: return <FiInfo size={iconSize} color="var(--chakra-colors-blue-500)" />;
+      default: return <FiBell size={iconSize} color="var(--chakra-colors-blue-500)" />;
     }
   };
 
@@ -342,7 +345,9 @@ const clearAllNotifications = async () => {
       />
       
       <MenuList
-        w={{ base: "calc(100vw - 32px)", md: "400px" }}
+      mt={3}
+      ml={6}
+        w={{ base: "calc(100vw - 50px)", md: "400px" }}
         maxH="550px"
         overflow="hidden"
         p={0}
@@ -454,7 +459,9 @@ const clearAllNotifications = async () => {
                       border="1px solid"
                       borderColor={borderColor}
                     >
-                      {getNotificationIcon(notification.type)}
+                      
+                      {getNotificationIcon(notification.type,{size:24})}
+                      
                     </Center>
                     
                     <Box flex="1">

@@ -265,10 +265,10 @@ const Issue = () => {
     }
   };
   // Function to fetch asset details
-  const fetchAssetDetails = async (asset_id) => {
+  const fetchAssetDetails = async (asset_asset_id) => {
     try {
       const response = await api.get(
-        `/api/assets/basic-with-issues/?asset_id=${asset_id}`,
+        `/api/assets/basic-with-issues/?asset_id=${asset_asset_id}`,
       );
       const assetData = response.data;
       console.log("Fetched asset data:", assetData);
@@ -2017,8 +2017,8 @@ const Issue = () => {
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
-                        if (issueForm.asset_id) {
-                          fetchAssetDetails(issueForm.asset_id);
+                        if (issueForm.asset_asset_id) {
+                          fetchAssetDetails(issueForm.asset_asset_id);
                         }
                       }
                     }}
@@ -2029,7 +2029,7 @@ const Issue = () => {
                     variant="outline"
                     onClick={() => {
                       if (issueForm.asset_asset_id) {
-                        fetchAssetDetails(issueForm.asset_id);
+                        fetchAssetDetails(issueForm.asset_asset_id);
                       } else {
                         toast({
                           title: "Asset ID Required",

@@ -1097,6 +1097,7 @@ const Services = () => {
           service={selectedService}
           isOpen={isEditOpen}
           onClose={onEditClose}
+          serviceUsers={serviceUsers}
           onSuccess={() => {
             if (selectedAssetId) {
               fetchServiceHistory(selectedAssetId);

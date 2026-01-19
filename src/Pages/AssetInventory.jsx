@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -32,7 +32,7 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
-} from '@chakra-ui/react';
+} from "@chakra-ui/react";
 import {
   FiPlus,
   FiPackage,
@@ -43,27 +43,27 @@ import {
   FiMoreVertical,
   FiDownload,
   FiTool,
-} from 'react-icons/fi';
-import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import AssignContractModal from '../Components/modals/AssignContractModal';
+} from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import AssignContractModal from "../Components/modals/AssignContractModal";
 
 const AssetInventory = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
-  const bgColor = useColorModeValue('gray.50', 'gray.900');
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const textColor = useColorModeValue('gray.600', 'gray.300');
-  const headingColor = useColorModeValue('gray.800', 'white');
+  const bgColor = useColorModeValue("gray.50", "gray.900");
+  const cardBg = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const textColor = useColorModeValue("gray.600", "gray.300");
+  const headingColor = useColorModeValue("gray.800", "white");
 
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
 
@@ -76,14 +76,14 @@ const AssetInventory = () => {
   const fetchAssets = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/api/assets/');
+      const response = await api.get("/api/assets/");
       setAssets(response.data || []);
     } catch (error) {
-      console.error('Error loading assets:', error);
+      console.error("Error loading assets:", error);
       toast({
-        title: 'Error loading assets',
+        title: "Error loading assets",
         description: error.response?.data?.detail || error.message,
-        status: 'error',
+        status: "error",
         duration: 5000,
         isClosable: true,
       });
@@ -93,7 +93,7 @@ const AssetInventory = () => {
   };
 
   const handleDeleteAsset = async (assetId) => {
-    if (!window.confirm('Are you sure you want to delete this asset?')) {
+    if (!window.confirm("Are you sure you want to delete this asset?")) {
       return;
     }
 
@@ -101,8 +101,8 @@ const AssetInventory = () => {
       await api.delete(`/api/assets/${assetId}/`);
 
       toast({
-        title: 'Asset deleted',
-        status: 'success',
+        title: "Asset deleted",
+        status: "success",
         duration: 3000,
         isClosable: true,
       });
@@ -110,9 +110,9 @@ const AssetInventory = () => {
       fetchAssets();
     } catch (error) {
       toast({
-        title: 'Error deleting asset',
+        title: "Error deleting asset",
         description: error.response?.data?.detail || error.message,
-        status: 'error',
+        status: "error",
         duration: 5000,
         isClosable: true,
       });
@@ -135,14 +135,21 @@ const AssetInventory = () => {
     navigate(`/add-asset?id=${asset.id}&view=true`);
   };
 
-  const canManageAssets = user?.role === 'org_admin' || user?.role === 'unit_admin';
+  const canManageAssets =
+    user?.role === "org_admin" || user?.role === "unit_admin";
 
   const handleEdit = (assetId) => {
     navigate(`/add-asset?id=${assetId}`);
   };
 
   return (
-    <Box mb={{base:15,md:0}} bg={bgColor} minH="100vh" p={{ base: 2, md: 8 }} pt={{ base: 0, md: 8 }}>
+    <Box
+      mb={{ base: 15, md: 0 }}
+      bg={bgColor}
+      minH="100vh"
+      p={{ base: 2, md: 8 }}
+      pt={{ base: 0, md: 8 }}
+    >
       <Container maxW="8xl">
         <VStack spacing={6} align="stretch">
           <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
@@ -161,7 +168,7 @@ const AssetInventory = () => {
               <Button
                 leftIcon={<FiPlus />}
                 colorScheme="blue"
-                onClick={() => navigate('/add-asset')}
+                onClick={() => navigate("/add-asset")}
                 size="sm"
               >
                 Add New Asset
@@ -202,9 +209,9 @@ const AssetInventory = () => {
                     variant="outline"
                     onClick={() => {
                       toast({
-                        title: 'Export feature',
-                        description: 'Export functionality coming soon',
-                        status: 'info',
+                        title: "Export feature",
+                        description: "Export functionality coming soon",
+                        status: "info",
                         duration: 3000,
                         isClosable: true,
                       });
@@ -232,7 +239,7 @@ const AssetInventory = () => {
                       <Button
                         leftIcon={<FiPlus />}
                         colorScheme="blue"
-                        onClick={() => navigate('/add-asset')}
+                        onClick={() => navigate("/add-asset")}
                       >
                         Add Your First Asset
                       </Button>
@@ -241,31 +248,47 @@ const AssetInventory = () => {
                 ) : (
                   <>
                     {/* Mobile Card View */}
-                    <SimpleGrid columns={1} spacing={4} display={{ base: 'grid', md: 'none' }}>
+                    <SimpleGrid
+                      columns={1}
+                      spacing={4}
+                      display={{ base: "grid", md: "none" }}
+                    >
                       {filteredAssets.map((asset) => (
-                        <Card key={asset.id} border="1px" borderColor={borderColor} variant="outline" bg={cardBg}>
+                        <Card
+                          key={asset.id}
+                          border="1px"
+                          borderColor={borderColor}
+                          variant="outline"
+                          bg={cardBg}
+                        >
                           <CardBody>
                             <VStack align="stretch" spacing={3}>
                               <Flex justify="space-between" align="center">
-                                <Badge colorScheme="purple">{asset.category}</Badge>
+                                <Badge colorScheme="purple">
+                                  {asset.category}
+                                </Badge>
                                 <Badge
                                   colorScheme={
-                                    asset.status === 'active'
-                                      ? 'green'
-                                      : 'gray'
+                                    asset.status === "active" ? "green" : "gray"
                                   }
                                 >
-                                  {asset.status || 'Active'}
+                                  {asset.status || "Active"}
                                 </Badge>
                               </Flex>
 
                               <Box>
-                                <Text fontWeight="bold" fontSize="md">{asset.asset_name}</Text>
-                                <Text fontSize="sm" color={textColor}>{asset.asset_id}</Text>
+                                <Text fontWeight="bold" fontSize="md">
+                                  {asset.asset_name}
+                                </Text>
+                                <Text fontSize="sm" color={textColor}>
+                                  {asset.asset_id}
+                                </Text>
                               </Box>
 
                               <Flex justify="space-between" align="center">
-                                <Text fontSize="xs" fontWeight="bold">Type:</Text>
+                                <Text fontSize="xs" fontWeight="bold">
+                                  Type:
+                                </Text>
                                 <Text fontSize="xs">{asset.asset_type}</Text>
                               </Flex>
 
@@ -304,7 +327,9 @@ const AssetInventory = () => {
                                       size="sm"
                                       variant="ghost"
                                       colorScheme="red"
-                                      onClick={() => handleDeleteAsset(asset.id)}
+                                      onClick={() =>
+                                        handleDeleteAsset(asset.id)
+                                      }
                                       aria-label="Delete"
                                     />
                                   </>
@@ -317,19 +342,24 @@ const AssetInventory = () => {
                     </SimpleGrid>
 
                     {/* Desktop Table View */}
-                    <Box overflowX="auto" display={{ base: 'none', md: 'block' }}>
+                    <Box
+                      overflowX="auto"
+                      overflowY="auto"
+                      maxHeight="650px"
+                      display={{ base: "none", md: "block" }}
+                    >
                       <Table variant="simple">
-                        <Thead bg={"gray.200"}>
+                        <Thead>
                           <Tr>
-                            <Th color={"gray.800"}>Asset ID</Th>
-                            <Th color={"gray.800"}>Asset Name</Th>
-                            <Th color={"gray.800"}>Type</Th>
-                            <Th color={"gray.800"}>Category</Th>
-                            <Th color={"gray.800"}>Status</Th>
-                            <Th color={"gray.800"}>Actions</Th>
+                            <Th position="sticky" top={0} bg="gray.200" zIndex={1} color={"gray.800"}>Asset ID</Th>
+                            <Th position="sticky" top={0} bg="gray.200" zIndex={1} color={"gray.800"}>Asset Name</Th>
+                            <Th position="sticky" top={0} bg="gray.200" zIndex={1} color={"gray.800"}>Type</Th>
+                            <Th position="sticky" top={0} bg="gray.200" zIndex={1} color={"gray.800"}>Category</Th>
+                            <Th position="sticky" top={0} bg="gray.200" zIndex={1} color={"gray.800"}>Status</Th>
+                            <Th position="sticky" top={0} bg="gray.200" zIndex={1} color={"gray.800"}>Actions</Th>
                           </Tr>
                         </Thead>
-                         <Tbody>
+                        <Tbody>
                           {filteredAssets.map((asset) => (
                             <Tr key={asset.id}>
                               <Td fontWeight="medium">{asset.asset_id}</Td>
@@ -343,57 +373,67 @@ const AssetInventory = () => {
                               <Td>
                                 <Badge
                                   colorScheme={
-                                    asset.status === 'active'
-                                      ? 'green'
-                                      : 'gray'
+                                    asset.status === "active" ? "green" : "gray"
                                   }
                                 >
-                                  {asset.status || 'Active'}
+                                  {asset.status || "Active"}
                                 </Badge>
                               </Td>
                               <Td>
-                                <Menu>
-                                  <MenuButton
-                                    as={IconButton}
-                                    icon={<FiMoreVertical />}
-                                    variant="ghost"
-                                    size="sm"
-                                  />
-                                  <MenuList>
-                                    <MenuItem
-                                      icon={<FiEye />}
-                                      onClick={() => handleViewDetails(asset)}
+                                <Box position="relative" display="inline-block">
+                                  <Menu>
+                                    <MenuButton
+                                      as={IconButton}
+                                      icon={<FiMoreVertical />}
+                                      variant="ghost"
+                                      size="sm"
+                                    />
+                                    <MenuList>
+                                      <MenuItem
+                                        icon={<FiEye />}
+                                        onClick={() => handleViewDetails(asset)}
+                                      >
+                                        View Details
+                                      </MenuItem>
+                                      {canManageAssets && (
+                                        <>
+                                          <MenuItem
+                                            icon={<FiTool />}
+                                            onClick={() => {
+                                              setSelectedAsset(asset);
+                                              setShowAssignModal(true);
+                                            }}
+                                          >
+                                            Assign AMC/CMC
+                                          </MenuItem>
+                                          <MenuItem
+                                            icon={<FiEdit />}
+                                            onClick={() => handleEdit(asset.id)}
+                                          >
+                                            Edit
+                                          </MenuItem>
+                                          <MenuItem
+                                            icon={<FiTrash2 />}
+                                            color="red.500"
+                                            onClick={() =>
+                                              handleDeleteAsset(asset.id)
+                                            }
+                                          >
+                                            Delete
+                                          </MenuItem>
+                                        </>
+                                      )}
+                                    </MenuList>
+                                  </Menu>
+                                  {asset.issue_count > 0 && (
+                                    <Badge
+                                     colorScheme="red"
+                                     ml={6}
                                     >
-                                      View Details
-                                    </MenuItem>
-                                    {canManageAssets && (
-                                      <>
-                                        <MenuItem
-                                          icon={<FiTool />}
-                                          onClick={() => {
-                                            setSelectedAsset(asset);
-                                            setShowAssignModal(true);
-                                          }}
-                                        >
-                                          Assign AMC/CMC
-                                        </MenuItem>
-                                        <MenuItem
-                                          icon={<FiEdit />}
-                                          onClick={() => handleEdit(asset.id)}
-                                        >
-                                          Edit
-                                        </MenuItem>
-                                        <MenuItem
-                                          icon={<FiTrash2 />}
-                                          color="red.500"
-                                          onClick={() => handleDeleteAsset(asset.id)}
-                                        >
-                                          Delete
-                                        </MenuItem>
-                                      </>
-                                    )}
-                                  </MenuList>
-                                </Menu>
+                                      {asset.issue_count} Issues
+                                    </Badge>
+                                  )}
+                                </Box>
                               </Td>
                             </Tr>
                           ))}

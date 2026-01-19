@@ -18,7 +18,7 @@ import {
 } from "@chakra-ui/react";
 import api from "../../services/api";
 
-const UpdateService = ({ service, isOpen, onClose, onSuccess }) => {
+const UpdateService = ({ service, isOpen, onClose, onSuccess, serviceUsers = [] }) => {
   const [loading, setLoading] = useState(false);
   const toast = useToast();
   const [formData, setFormData] = useState({
@@ -26,6 +26,7 @@ const UpdateService = ({ service, isOpen, onClose, onSuccess }) => {
     priority: "",
     remarks: "",
     status: "",
+    service_user: "",
   });
 
   useEffect(() => {
@@ -35,6 +36,7 @@ const UpdateService = ({ service, isOpen, onClose, onSuccess }) => {
         priority: service.priority || "",
         remarks: service.remarks || "",
         status: service.status || "",
+        service_user: service.service_user?.id || service.service_user || "",
       });
     }
   }, [service, isOpen]);
@@ -50,7 +52,13 @@ const UpdateService = ({ service, isOpen, onClose, onSuccess }) => {
   const handleUpdate = async () => {
     setLoading(true);
     try {
-      await api.patch(`/api/asset-service/${service.id}/update-service/`, formData);
+      const dataToSubmit = {
+        ...formData,
+        service_user_id: formData.service_user ? parseInt(formData.service_user) : null,
+      };
+      delete dataToSubmit.service_user; // Remove the original field to avoid confusion
+
+      await api.patch(`/api/asset-service/${service.id}/update-service/`, dataToSubmit);
       toast({
         title: "Success",
         description: "Service updated successfully",
@@ -94,6 +102,21 @@ const UpdateService = ({ service, isOpen, onClose, onSuccess }) => {
                 <option value="calibration">Calibration</option>
                 <option value="installation">Installation</option>
                 <option value="upgrade">Upgrade</option>
+              </Select>
+            </FormControl>
+            <FormControl>
+              <FormLabel>Assign To</FormLabel>
+              <Select
+                name="service_user"
+                value={formData.service_user}
+                onChange={handleInputChange}
+                placeholder="Select technician"
+              >
+                {serviceUsers.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name} ({user.role})
+                  </option>
+                ))}
               </Select>
             </FormControl>
 

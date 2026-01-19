@@ -84,6 +84,7 @@ import {
   FiRefreshCw,
   FiMoreVertical,
   FiEye,
+  FiPackage,
 } from "react-icons/fi";
 import { BsFillBuildingFill } from "react-icons/bs";
 import axios from "axios";
@@ -962,6 +963,40 @@ const UserManagement = () => {
       ))}
     </VStack>
   );
+  const statsConfig = {
+  superadmin: {
+    columns: 6,
+    items: [
+      { key: "organizations", label: "Organizations", color: "teal" },
+      { key: "admins", label: "Admins", color: "blue" },
+      { key: "units", label: "Units", color: "orange" },
+      { key: "unitAdmins", label: "Unit Admins", color: "purple" },
+      { key: "totalUsers", label: "Total Users", color: "cyan" },
+      { key: "activeUsers", label: "Active Users", color: "green" },
+    ],
+  },
+  org_admin: {
+    columns: 5,
+    items: [
+      { key: "admins", label: "Admins", color: "blue" },
+      { key: "units", label: "Units", color: "orange" },
+      { key: "unitAdmins", label: "Unit Admins", color: "purple" },
+      { key: "totalUsers", label: "Total Users", color: "cyan" },
+      { key: "activeUsers", label: "Active Users", color: "green" },
+    ],
+  },
+  unit_admin: {
+    columns: 3,
+    items: [
+      { key: "units", label: "Units", color: "orange" },
+      { key: "totalUsers", label: "Total Users", color: "cyan" },
+      { key: "activeUsers", label: "Active Users", color: "green" },
+    ],
+  },
+};
+
+const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
+
 
   return (
     <Box
@@ -1010,43 +1045,31 @@ const UserManagement = () => {
         </Text>
       </Box>
       {/* Stats Overview */}
-      <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={4} mb={6}>
-        {[
-          {
-            label: "Organizations",
-            value: stats.totalOrganizations,
-            color: "teal",
-          },
-          { label: "Admins", value: stats.totalAdmins, color: "blue" },
-          { label: "Units", value: stats.totalUnits, color: "orange" },
-          {
-            label: "Unit Admins",
-            value: stats.totalUnitAdmins,
-            color: "purple",
-          },
-          { label: "Total Users", value: stats.totalUsers, color: "cyan" },
-          { label: "Active Users", value: stats.activeUsers, color: "green" },
-        ].map((stat, idx) => (
-          <Card key={idx} bg="white" border="1px" borderColor="gray.200">
-            <CardBody>
-              <Stat>
-                <StatLabel>{stat.label}</StatLabel>
-                <StatNumber color={`${stat.color}.500`}>
-                  {loading.organizations ||
-                  loading.admins ||
-                  loading.units ||
-                  loading.unitAdmins ||
-                  loading.users ? (
-                    <Skeleton height="20px" width="50px" />
-                  ) : (
-                    stat.value
-                  )}
-                </StatNumber>
-              </Stat>
-            </CardBody>
-          </Card>
-        ))}
-      </SimpleGrid>
+
+<SimpleGrid 
+  columns={{ base: 2, md: 3, lg: userConfig.columns }} 
+  spacing={4} 
+  mb={6}
+>
+  {userConfig.items.map((item, idx) => (
+    <Card key={idx} bg="white" border="1px" borderColor="gray.200">
+      <CardBody>
+        <Stat>
+          <StatLabel>{item.label}</StatLabel>
+          <StatNumber color={`${item.color}.500`}>
+            {loading[item.key] ? (
+              <Skeleton height="20px" width="50px" />
+            ) : (
+              stats[`total${item.label.replace(/\s+/g, '')}`] || 
+              stats[item.key] ||
+              0
+            )}
+          </StatNumber>
+        </Stat>
+      </CardBody>
+    </Card>
+  ))}
+</SimpleGrid>
 
       {/* Main Content with Tabs */}
       {userRole ? (
@@ -1648,19 +1671,25 @@ const UserManagement = () => {
                               </Text>
                               <HStack justify="space-between">
                                 <VStack align="start" spacing={1}>
-                                  <Text fontSize="sm">
-                                    👤 {unit.user_count} users
+                                  <HStack>
+                                  <FiUser color="blue"/>
+                                  <Text fontSize="md">
+                                     {unit.user_count} users
                                   </Text>
-                                  <Text fontSize="sm">
-                                    🏷️ {unit.asset_count} assets
+                                  </HStack>
+                                  <HStack>
+                                  <FiPackage color="green"/> 
+                                  <Text fontSize="md">
+                                    {unit.asset_count} assets
                                   </Text>
+                                  </HStack>
                                 </VStack>
-                                <HStack spacing={1}>
-                                  <IconButton
+                                <HStack spacing={2}>
+                                  <Button
                                     aria-label="Add department"
-                                    icon={<FiPlus />}
+                                    leftIcon={<FiPlus />}
                                     size="sm"
-                                    variant="ghost"
+                                    variant="outline"
                                     colorScheme="teal"
                                     onClick={() => {
                                       setNewDepartment({
@@ -1669,13 +1698,18 @@ const UserManagement = () => {
                                       });
                                       onDepartmentOpen();
                                     }}
-                                  />
-                                  <IconButton
+                                  >
+                                    Add Department
+                                   </Button>
+                                  <Button
                                     aria-label="Manage unit"
-                                    icon={<FiEdit2 />}
+                                    leftIcon={<FiEdit2 />}
                                     size="sm"
-                                    variant="ghost"
-                                  />
+                                    variant="outline"
+                                    colorScheme="blue"
+                                  >
+                                    Edit
+                                    </Button>
                                 </HStack>
                               </HStack>
                             </CardBody>
@@ -1980,7 +2014,8 @@ const UserManagement = () => {
                             <Tr>
                               <Th>Name</Th>
                               <Th>Unit</Th>
-                              {/* <Th>Created</Th> */}
+                              <Th>Total Users</Th>
+                              <Th>Total Assets</Th>
                               <Th>Actions</Th>
                             </Tr>
                           </Thead>
@@ -1989,6 +2024,8 @@ const UserManagement = () => {
                               <Tr key={dept.id}>
                                 <Td fontWeight="medium">{dept.name}</Td>
                                 <Td>{dept.unit_name || dept.unit}</Td>
+                                <Td>{dept.user_count}</Td>
+                                <Td>{dept.asset_count}</Td>
                                 <Td>
                                   <HStack spacing={2}>
                                     <IconButton

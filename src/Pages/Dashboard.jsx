@@ -49,11 +49,13 @@ import {
 } from "react-icons/fi";
 import { FiBarChart } from "react-icons/fi";
 import { User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const bgColor = useColorModeValue("gray.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
@@ -116,6 +118,7 @@ const Dashboard = () => {
           color: "blue.500",
           description: "Active assets in system",
           trend: "up",
+          path: "/asset-inventory",
         },
         {
           id: 2,
@@ -127,6 +130,7 @@ const Dashboard = () => {
           color: "red.500",
           description: "Currently not operational",
           trend: "down",
+          path: "/asset-inventory",
         },
         {
           id: 3,
@@ -138,6 +142,7 @@ const Dashboard = () => {
           color: "orange.500",
           description: "Preventive maintenance pending",
           trend: "up",
+          path: "/services",
         },
         {
           id: 4,
@@ -149,6 +154,7 @@ const Dashboard = () => {
           color: "yellow.500",
           description: "Requires calibration",
           trend: "up",
+          path: "/services",
         },
         {
           id: 5,
@@ -160,6 +166,7 @@ const Dashboard = () => {
           color: "purple.500",
           description: "Warranty ended",
           trend: "warning",
+          path: "/asset-inventory",
         },
         {
           id: 6,
@@ -171,6 +178,7 @@ const Dashboard = () => {
           color: "red.400",
           description: "Active issues",
           trend: "up",
+          path: "/issue",
         },
         {
           id: 7,
@@ -182,6 +190,7 @@ const Dashboard = () => {
           color: "green.500",
           description: "Covered assets",
           trend: "up",
+          path: "/asset-inventory",
         },
         {
           id: 8,
@@ -193,6 +202,7 @@ const Dashboard = () => {
           color: "teal.500",
           description: "Expired licenses",
           trend: "stable",
+          path: "/asset-inventory",
         },
         {
           id: 9,
@@ -204,6 +214,7 @@ const Dashboard = () => {
           color: "green.400",
           description: "Resolved issues",
           trend: "up",
+          path: "/issue",
         },
       ]
     : [];
@@ -212,33 +223,32 @@ const Dashboard = () => {
   const priorityAlerts = priorityData ? priorityData.alerts : [];
   const priorityCount = priorityData ? priorityData.count : 0;
   const assetStatus = [
-    {
-      status: "Operational",
-      count: summaryData
-        ? summaryData.assets.total - summaryData.assets.out_of_service
-        : 0,
-      percentage: summaryData
-        ? Math.round(
-            ((summaryData.assets.total - summaryData.assets.out_of_service) /
-              summaryData.assets.total) *
-              100,
-          )
-        : 0,
-      color: "green",
-    },
-    {
-      status: "Out of Service",
-      count: summaryData ? summaryData.assets.out_of_service : 0,
-      percentage: summaryData
-        ? Math.round(
-            (summaryData.assets.out_of_service / summaryData.assets.total) *
-              100,
-          )
-        : 0,
-      color: "red",
-    },
-  ];
-
+  {
+    status: "Operational",
+    count: summaryData
+      ? summaryData.assets.total - (summaryData.assets.out_of_service || 0)
+      : 0,
+    percentage: summaryData?.assets?.total > 0
+      ? Math.round(
+          ((summaryData.assets.total - (summaryData.assets.out_of_service || 0)) /
+            summaryData.assets.total) *
+            100,
+        )
+      : 0,
+    color: "green",
+  },
+  {
+    status: "Out of Service",
+    count: summaryData ? (summaryData.assets.out_of_service || 0) : 0,
+    percentage: summaryData?.assets?.total > 0
+      ? Math.round(
+          ((summaryData.assets.out_of_service || 0) / summaryData.assets.total) *
+            100,
+        )
+      : 0,
+    color: "red",
+  },
+];
   if (loading) {
     return (
       <Flex minH="100vh" align="center" justify="center">
@@ -262,9 +272,9 @@ const Dashboard = () => {
           align={{ base: "flex-start", md: "center" }}
         >
           <Box mb={{ base: 4, md: 0 }}>
-            <Heading size="md" color={headingColor} mb={2}>
-              Welcome Back, {user.first_name}
-            </Heading>
+            <HStack >
+              <Text fontWeight={"bold"} color={"blue.700"} fontSize={"2xl"}>Welcome Back,</Text> <Text fontWeight={"bold"} color={"green"} fontSize={"2xl"}>{user.first_name}</Text>
+            </HStack>
             <Text color={textColor} fontSize={{ base: "xs", lg: "sm" }}>
               Comprehensive overview of assets and maintenance activities
             </Text>
@@ -273,7 +283,7 @@ const Dashboard = () => {
             <Badge colorScheme="green" p={2} borderRadius="md">
               <HStack>
                 <Icon as={FiClock} />
-                <Text fontSize={"10px"}>
+                <Text fontSize={{base:"10px",md:"15px"}}>
                   Updated : {new Date().toLocaleString()}
                 </Text>
               </HStack>
@@ -281,7 +291,9 @@ const Dashboard = () => {
             <Badge colorScheme="blue" p={2} borderRadius="md">
               <HStack>
                 <Icon as={FiUsers} />
-                <Text fontSize={"10px"}>Active Users: 42</Text>
+                <HStack>
+                <Text fontSize={{base:"10px",md:"15px"}}>Active Users: {summaryData.users.active}</Text>
+                </HStack>
               </HStack>
             </Badge>
           </HStack>
@@ -300,6 +312,8 @@ const Dashboard = () => {
                 border="1px"
                 borderColor={borderColor}
                 transition="all 0.3s"
+                cursor="pointer"
+                onClick={() => navigate(card.path)}
                 _hover={{
                   transform: "translateY(-4px)",
                   boxShadow: "lg",
