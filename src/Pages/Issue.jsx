@@ -381,23 +381,19 @@ const Issue = () => {
   const fetchIssues = async () => {
     try {
       setIsLoading(true);
-      const accesstoken = getAccessToken();
-      const response = await fetch(`${API_BASE_URL}/api/issues`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${accesstoken}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setIssues(data);
+      const response = await api.get("/api/issues/");
+      setIssues(response.data);
     } catch (error) {
       console.error("Error fetching issues:", error);
-      // Optional: show error toast or handle error state
+      toast({
+        title: "Error Loading Issues",
+        description:
+          error.response?.data?.detail ||
+          "Could not load issues. Please try again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -582,20 +578,14 @@ const Issue = () => {
         });
       }
 
-      const accesstoken = getAccessToken();
-      const response = await fetch(`${API_BASE_URL}/api/issues/`, {
-        method: "POST",
+      const response = await api.post("/api/issues/", formData, {
         headers: {
-          Authorization: `Bearer ${accesstoken}`,
+          "Content-Type": "multipart/form-data",
         },
-        body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      setIssues([newIssue, ...issues]);
+      const createdIssue = response.data;
+      setIssues([createdIssue, ...issues]);
       setIssueForm({
         asset_id: "",
         asset_name: "",
@@ -612,7 +602,7 @@ const Issue = () => {
 
       toast({
         title: "Issue Created",
-        description: `Issue ${newIssue.title} has been created successfully.`,
+        description: `Issue ${createdIssue.title} has been created successfully.`,
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -672,26 +662,12 @@ const Issue = () => {
 
         console.log("Assigning issue payload:", payload);
 
-        const accesstoken = getAccessToken();
-        const response = await fetch(
-          `${API_BASE_URL}/api/issues/${issueId}/assign/`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accesstoken}`,
-            },
-            body: JSON.stringify(payload),
-          },
+        const response = await api.patch(
+          `/api/issues/${issueId}/assign/`,
+          payload,
         );
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Assignment error response:", errorText);
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        return await response.json();
+        return response.data;
       });
 
       const updatedIssues = await Promise.all(promises);
@@ -768,29 +744,13 @@ const Issue = () => {
   // Helper function to add comment
   const addAssignmentComment = async (issueIds, comment) => {
     try {
-      const accesstoken = getAccessToken();
-
       const promises = issueIds.map(async (issueId) => {
-        const response = await fetch(
-          `${API_BASE_URL}/api/issues/${issueId}/comments/`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accesstoken}`,
-            },
-            body: JSON.stringify({
-              text: `Assignment Note: ${comment}`,
-              user_id: userdata?.id || "system",
-            }),
-          },
-        );
+        const response = await api.post(`/api/issues/${issueId}/comments/`, {
+          text: `Assignment Note: ${comment}`,
+          user_id: user?.id || "system",
+        });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        return await response.json();
+        return response.data;
       });
 
       await Promise.all(promises);
