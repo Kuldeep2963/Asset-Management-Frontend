@@ -421,14 +421,14 @@ const Subscription = () => {
                       <Box textAlign="center" mb={6}>
                         <HStack justify="center" align="baseline" spacing={1}>
                           <Heading size="3xl" color={headingColor}>
-                            ${plan.price}
+                            ₹{plan.price}
                           </Heading>
                           <Text color={textColor} fontSize="lg">
                             /{plan.duration_days} days
                           </Text>
                         </HStack>
                         <Text color="green.500" fontSize="sm" mt={1}>
-                          ${(plan.price / plan.duration_days).toFixed(2)}/day
+                          ₹{(plan.price / plan.duration_days).toFixed(2)}/day
                         </Text>
                       </Box>
 

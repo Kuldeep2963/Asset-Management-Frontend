@@ -124,10 +124,12 @@ import {
 import { format, addDays, subDays } from "date-fns";
 import { FaBarcode, FaQrcode, FaSearch } from "react-icons/fa";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { formatDistanceToNow } from "date-fns";
 import CommentModal from "../components/modals/CommentModal";
 const Issue = () => {
+  const { user } = useAuth();
   const toast = useToast();
 
   // Color mode values
@@ -158,13 +160,8 @@ const Issue = () => {
     useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
 
-  const API_BASE_URL = "https://asset-management-backend-7y34.onrender.com";
-  const userdata = JSON.parse(
-    localStorage.getItem("user") || sessionStorage.getItem("user"),
-  );
-  console.log(userdata); // Adjust based on your auth setup
-  const userRole = userdata.role; // 'viewer', 'admin', 'manager', etc.
-  const canRaiseIssue = userRole === "viewer"; // Only viewers can raise issues
+  const userRole = user?.role || "";
+  const canRaiseIssue = userRole === "viewer"; 
   const can_comment_and_can_assign = ["unit_admin", "org_admin"].includes(
     userRole,
   );
@@ -213,13 +210,6 @@ const Issue = () => {
     dateRange: "7days",
   });
 
-  const getAccessToken = () => {
-    return (
-      localStorage.getItem("access_token") ||
-      sessionStorage.getItem("access_token")
-    );
-  };
-
   // Add state for issue form
   const [issueForm, setIssueForm] = useState({
     asset_id: "",
@@ -258,25 +248,13 @@ const Issue = () => {
   const fetchAssignableUsers = async () => {
     try {
       setIsLoadingAssignableUsers(true);
-      const accesstoken = getAccessToken();
-      const response = await fetch(`${API_BASE_URL}/api/users/assignable/`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${accesstoken}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setAssignableUsers(data);
+      const response = await api.get("/api/users/assignable/");
+      setAssignableUsers(response.data);
     } catch (error) {
       console.error("Error fetching assignable users:", error);
       toast({
         title: "Error Loading Users",
-        description: "Could not load assignable users. Please try again.",
+        description: error.response?.data?.detail || "Could not load assignable users. Please try again.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -1588,7 +1566,7 @@ const Issue = () => {
                                           <Avatar
                                             size="xs"
                                             name={getUserDisplayName(
-                                              issue.assigned_to,
+                                              issue.assigned_to.name,
                                             )}
                                           />
                                           <Text fontSize="sm">
@@ -1831,7 +1809,7 @@ const Issue = () => {
                                               <Avatar
                                                 size="xs"
                                                 name={getUserDisplayName(
-                                                  issue.assigned_to,
+                                                  issue.assigned_to.name,     ////////changed
                                                 )}
                                               />
                                               <VStack align="start" spacing={0}>
@@ -2064,7 +2042,7 @@ const Issue = () => {
                   <Input
                     value={issueForm.asset_asset_id}
                     onChange={(e) => {
-                      setIssueForm({ ...issueForm, asset_id: e.target.value });
+                      setIssueForm({ ...issueForm, asset_asset_id: e.target.value });
                       if (!e.target.value) {
                         setIssueForm((prev) => ({
                           ...prev,
@@ -2090,7 +2068,7 @@ const Issue = () => {
                     colorScheme="blue"
                     variant="outline"
                     onClick={() => {
-                      if (issueForm.asset_id) {
+                      if (issueForm.asset_asset_id) {
                         fetchAssetDetails(issueForm.asset_id);
                       } else {
                         toast({
@@ -2103,7 +2081,7 @@ const Issue = () => {
                       }
                     }}
                     leftIcon={<FaSearch />}
-                    isDisabled={!issueForm.asset_id}
+                    isDisabled={!issueForm.asset_asset_id}
                   >
                     <Text display={{ base: "none", md: "block" }}>Search</Text>
                   </Button>

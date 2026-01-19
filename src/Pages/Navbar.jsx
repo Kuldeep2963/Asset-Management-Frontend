@@ -63,180 +63,237 @@ import {
   FiXCircle,
   FiInfo
 } from 'react-icons/fi';
-import axios from 'axios';
-
-const API_BASE_URL = "https://asset-management-backend-7y34.onrender.com";
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-});
-
-api.interceptors.request.use(
-  (config) => {
-    let accessToken = localStorage.getItem("access_token");
-    if (!accessToken) {
-      accessToken = sessionStorage.getItem("access_token");
-    }
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+import api from '../services/api';
 
 const NotificationIcon = () => {
+  const { accessToken } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const { isOpen: isNotificationsOpen, onOpen: onNotificationsOpen, onClose: onNotificationsClose } = useDisclosure();
   const menuRef = useRef(null);
   const toast = useToast();
   const navigate = useNavigate();
   const textColor = useColorModeValue('gray.600', 'gray.300');
+  const secondaryTextColor = useColorModeValue('gray.500', 'gray.400');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const hoverBg = useColorModeValue('gray.50', 'gray.700');
+  const unreadBg = useColorModeValue('blue.50', 'rgba(66, 153, 225, 0.1)');
 
   // Fetch notifications
-  const fetchNotifications = async (showUnread = false) => {
-    try {
-      setIsLoading(true);
-      const endpoint = showUnread 
-        ? '/api/notifications/?unread=true' 
-        : '/api/notifications/';
-      
-      const response = await api.get(endpoint);
-      setNotifications(response.data);
-      
-      // Calculate unread count
-      const unread = response.data.filter(notif => !notif.read).length;
-      setUnreadCount(unread);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load notifications',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-        position: 'top-right',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+ const fetchNotifications = async (isSilent = false) => {
+  try {
+    if (!isSilent) setIsLoading(true);
+    
+    // Fetch all notifications to keep the badge count accurate
+    const response = await api.get('/api/notifications/', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    
+    setNotifications(response.data);
+    
+    // Update unread count based on the full list
+    const unread = response.data.filter(n => !n.read).length;
+    setUnreadCount(unread);
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    toast({
+      title: 'Error',
+      description: 'Failed to load notifications',
+      status: 'error',
+      duration: 3000,
+      isClosable: true,
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-  // Mark notification as read
-  const markAsRead = async (notificationId) => {
-    try {
-      await api.post(`/api/notifications/${notificationId}/read/`);
-      
-      // Update local state
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif.id === notificationId 
-            ? { ...notif, read: true } 
-            : notif
-        )
-      );
-      
-      // Update unread count
+// Mark notification as read
+const markAsRead = async (notificationId) => {
+  const notification = notifications.find(n => n.id == notificationId);
+  if (!notification || notification.read) return;
+
+  try {
+    await api.post(`/api/notifications/${notificationId}/read/`, {}, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    
+    setNotifications(prev => 
+      prev.map(notif => 
+        notif.id == notificationId 
+          ? { ...notif, read: true } 
+          : notif
+      )
+    );
+    
+    setUnreadCount(prev => Math.max(0, prev - 1));
+    
+    toast({
+      title: 'Notification marked as read',
+      status: 'success',
+      duration: 2000,
+      isClosable: true,
+    });
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    toast({
+      title: 'Error',
+      description: 'Failed to mark notification as read',
+      status: 'error',
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+};
+
+// Mark all as read
+const markAllAsRead = async () => {
+  try {
+    const unreadNotifications = notifications.filter(n => !n.read);
+    if (unreadNotifications.length === 0) return;
+
+    // Use bulk update if API supports it, or individual calls
+    await Promise.all(
+      unreadNotifications.map(notif => 
+        api.post(`/api/notifications/${notif.id}/read/`, {}, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        })
+      )
+    );
+    
+    setNotifications(prev => 
+      prev.map(notif => ({ ...notif, read: true }))
+    );
+    
+    setUnreadCount(0);
+    
+    toast({
+      title: 'All caught up!',
+      description: 'All notifications marked as read',
+      status: 'success',
+      duration: 2000,
+      isClosable: true,
+    });
+  } catch (error) {
+    console.error('Error marking all as read:', error);
+    toast({
+      title: 'Error',
+      description: 'Failed to mark all notifications as read',
+      status: 'error',
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+};
+
+// Delete notification
+const deleteNotification = async (e, notificationId) => {
+  e.stopPropagation();
+  try {
+    await api.delete(`/api/notifications/${notificationId}/`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    
+    const deletedNotif = notifications.find(n => n.id === notificationId);
+    if (deletedNotif && !deletedNotif.read) {
       setUnreadCount(prev => Math.max(0, prev - 1));
-      
-      toast({
-        title: 'Notification marked as read',
-        status: 'success',
-        duration: 2000,
-        isClosable: true,
-        position: 'top-right',
-      });
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to mark notification as read',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-        position: 'top-right',
-      });
     }
-  };
+    
+    setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
+    
+    toast({
+      title: 'Notification deleted',
+      status: 'info',
+      duration: 2000,
+      isClosable: true,
+    });
+  } catch (error) {
+    console.error('Error deleting notification:', error);
+    toast({
+      title: 'Error',
+      description: 'Failed to delete notification',
+      status: 'error',
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+};
 
-  // Mark all as read
-  const markAllAsRead = async () => {
-    try {
-      // Mark each unread notification
-      const unreadNotifications = notifications.filter(notif => !notif.read);
-      await Promise.all(
-        unreadNotifications.map(notif => 
-          api.post(`/api/notifications/${notif.id}/read/`)
-        )
-      );
-      
-      // Update local state
-      setNotifications(prev => 
-        prev.map(notif => ({ ...notif, read: true }))
-      );
-      
-      setUnreadCount(0);
-      
-      toast({
-        title: 'All notifications marked as read',
-        status: 'success',
-        duration: 2000,
-        isClosable: true,
-        position: 'top-right',
-      });
-    } catch (error) {
-      console.error('Error marking all as read:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to mark all notifications as read',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-        position: 'top-right',
-      });
-    }
-  };
-
-  // Fetch notifications on component mount
+// Clear all notifications
+const clearAllNotifications = async () => {
+  if (notifications.length === 0) return;
+  
+  if (!window.confirm('Are you sure you want to clear all notifications? This action cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    // Check if your API supports bulk delete, otherwise delete individually
+    await Promise.all(
+      notifications.map(notif => api.delete(`/api/notifications/${notif.id}/`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      }))
+    );
+    
+    setNotifications([]);
+    setUnreadCount(0);
+    
+    toast({
+      title: 'Inbox cleared',
+      description: 'All notifications have been removed',
+      status: 'success',
+      duration: 2000,
+      isClosable: true,
+    });
+  } catch (error) {
+    console.error('Error clearing notifications:', error);
+    toast({
+      title: 'Error',
+      description: 'Failed to clear notifications',
+      status: 'error',
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+};
   useEffect(() => {
-    fetchNotifications();
-    
-    // Optional: Set up polling for new notifications
-    const interval = setInterval(() => {
+    if (accessToken) {
       fetchNotifications();
-    }, 30000); // Check every 30 seconds
-    
-    return () => clearInterval(interval);
-  }, []);
+      const interval = setInterval(() => fetchNotifications(true), 60000);
+      return () => clearInterval(interval);
+    }
+  }, [accessToken]);
 
-  // Format time
   const formatTime = (timestamp) => {
     const now = new Date();
     const date = new Date(timestamp);
-    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+    const diffInSeconds = Math.floor((now - date) / 1000);
     
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes} min ago`;
-    } else if (diffInMinutes < 1440) {
-      return `${Math.floor(diffInMinutes / 60)} hours ago`;
-    } else {
-      return date.toLocaleDateString();
-    }
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    return date.toLocaleDateString();
   };
 
-  // Get notification icon based on type
   const getNotificationIcon = (type) => {
+    const iconSize = 4;
     switch(type) {
-      case 'success': return <FiCheckCircle color="green.500" />;
-      case 'warning': return <FiAlertTriangle color="orange.500" />;
-      case 'error': return <FiXCircle color="red.500" />;
-      case 'info': return <FiInfo color="blue.500" />;
-      default: return <BellIcon />;
+      case 'success': return <FiCheckCircle size={iconSize} color="var(--chakra-colors-green-500)" />;
+      case 'warning': return <FiAlertTriangle size={iconSize} color="var(--chakra-colors-orange-500)" />;
+      case 'error': return <FiXCircle size={iconSize} color="var(--chakra-colors-red-500)" />;
+      default: return <FiInfo size={iconSize} color="var(--chakra-colors-blue-500)" />;
     }
   };
 
@@ -245,183 +302,234 @@ const NotificationIcon = () => {
       isOpen={isNotificationsOpen} 
       onClose={onNotificationsClose}
       placement="bottom-end"
+      closeOnSelect={false}
     >
       <MenuButton
         as={IconButton}
-        colorScheme='blue'
-        aria-label="Notifications"
-        icon={
-          <Box position="relative">
-            <BellIcon />
-            {unreadCount > 0 && (
-              <Badge
-                position="absolute"
-                top="-1"
-                right="-1"
-                borderRadius="full"
-                colorScheme="red"
-                fontSize="2xs"
-                minW="5"
-                h="5"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-              >
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </Badge>
-            )}
-          </Box>
-        }
         variant="ghost"
-        size="lg"
+        size="md"
+        colorScheme='green'
         borderRadius="full"
         onClick={onNotificationsOpen}
         ref={menuRef}
-      />
-      
-      <MenuList
-        maxW="400px"
-        maxH="500px"
-        overflowY="auto"
-        p={0}
-        boxShadow="xl"
-      >
-        <Box p={4} borderBottom="1px" borderColor={borderColor}>
-          <Flex justify="space-between" align="center">
-            <Heading size="sm">Notifications</Heading>
+        icon={
+          <Box position="relative">
+            <BellIcon boxSize={6} />
             {unreadCount > 0 && (
-              <Button
-                size="xs"
-                colorScheme="blue"
-                variant="ghost"
-                onClick={markAllAsRead}
+              <Box
+                position="absolute"
+                top="-1px"
+                right="-1px"
+                bg="red.500"
+                color="white"
+                borderRadius="full"
+                border="2px solid"
+                borderColor={useColorModeValue('white', 'gray.800')}
+                fontSize="10px"
+                fontWeight="bold"
+                minW="18px"
+                h="18px"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                px={1}
               >
-                Mark all as read
-              </Button>
-            )}
-          </Flex>
-        </Box>
-
-        {isLoading ? (
-          <Center p={8}>
-            <Spinner size="md" color="blue.500" />
-          </Center>
-        ) : notifications.length === 0 ? (
-          <Center p={8}>
-            <VStack spacing={2}>
-              <BellIcon boxSize={8} color="gray.400" />
-              <Text color="gray.500">No notifications</Text>
-            </VStack>
-          </Center>
-        ) : (
-          <Box>
-            {notifications.slice(0, 10).map((notification) => (
-              <MenuItem
-                key={notification.id}
-                p={0}
-                _hover={{ bg: 'transparent' }}
-                _focus={{ bg: 'transparent' }}
-                onClick={() => markAsRead(notification.id)}
-              >
-                <Box
-                  w="100%"
-                  p={3}
-                  bg={notification.read ? useColorModeValue('white', 'gray.800') : useColorModeValue('blue.50', 'gray.700')}
-                  borderBottom="1px"
-                  borderColor={borderColor}
-                  _hover={{ bg: useColorModeValue('gray.50', 'gray.700') }}
-                >
-                  <Flex align="start" gap={3}>
-                    <Box mt={1}>
-                      {getNotificationIcon(notification.type || 'info')}
-                    </Box>
-                    <Box flex="1">
-                      <Flex justify="space-between" align="start">
-                        <Text
-                          fontWeight={notification.read ? "normal" : "bold"}
-                          fontSize="sm"
-                        >
-                          {notification.title || 'Notification'}
-                        </Text>
-                        <Text fontSize="xs" color={textColor}>
-                          {formatTime(notification.created_at || new Date().toISOString())}
-                        </Text>
-                      </Flex>
-                      <Text
-                        fontSize="xs"
-                        color={textColor}
-                        mt={1}
-                        noOfLines={2}
-                      >
-                        {notification.message || 'No message content'}
-                      </Text>
-                      {notification.data && (
-                        <Badge
-                          mt={2}
-                          colorScheme="blue"
-                          fontSize="2xs"
-                          variant="subtle"
-                        >
-                          {notification.data}
-                        </Badge>
-                      )}
-                    </Box>
-                    {!notification.read && (
-                      <Box
-                        w="2"
-                        h="2"
-                        borderRadius="full"
-                        bg="blue.500"
-                        mt={1}
-                        flexShrink={0}
-                      />
-                    )}
-                  </Flex>
-                </Box>
-              </MenuItem>
-            ))}
-            
-            {notifications.length > 10 && (
-              <Box p={3} textAlign="center">
-                <Text fontSize="sm" color={textColor}>
-                  Showing 10 of {notifications.length} notifications
-                </Text>
-                <Button
-                  size="xs"
-                  variant="link"
-                  colorScheme="blue"
-                  mt={1}
-                  onClick={() => {
-                    onNotificationsClose();
-                    navigate('/notifications');
-                  }}
-                >
-                  View all
-                </Button>
+                {unreadCount > 9 ? '9+' : unreadCount}
               </Box>
             )}
           </Box>
-        )}
+        }
+      />
+      
+      <MenuList
+        w={{ base: "calc(100vw - 32px)", md: "400px" }}
+        maxH="550px"
+        overflow="hidden"
+        p={0}
+        boxShadow="2xl"
+        borderRadius="xl"
+        border="1px solid"
+        borderColor={borderColor}
+      >
+        <Box p={4} borderBottom="1px" borderColor={borderColor}>
+          <Flex justify="space-between" align="center" mb={3}>
+            <Heading size="md">Notifications</Heading>
+            <HStack spacing={2}>
+              {unreadCount > 0 && (
+                <Tooltip label="Mark all as read">
+                  <IconButton
+                    size="sm"
+                    icon={<FiCheckCircle />}
+                    variant="ghost"
+                    colorScheme="blue"
+                    onClick={markAllAsRead}
+                    aria-label="Mark all as read"
+                  />
+                </Tooltip>
+              )}
+              <Tooltip label="Clear all">
+                <Button
+                  size="sm"
+                  leftIcon={<FaSignOutAlt/>}
+                  variant="ghost"
+                  colorScheme="red"
+                  onClick={clearAllNotifications}
+                  aria-label="Clear all"
+                >Clear All
+                  </Button>
+              </Tooltip>
+            </HStack>
+          </Flex>
+          
+          <HStack spacing={4}>
+            <Button
+              size="xs"
+              variant={!showUnreadOnly ? "solid" : "ghost"}
+              colorScheme="blue"
+              borderRadius="full"
+              onClick={() => setShowUnreadOnly(false)}
+            >
+              All
+            </Button>
+            <Button
+              size="xs"
+              variant={showUnreadOnly ? "solid" : "ghost"}
+              colorScheme="blue"
+              borderRadius="full"
+              onClick={() => setShowUnreadOnly(true)}
+            >
+              Unread
+            </Button>
+          </HStack>
+        </Box>
 
+        <Box overflowY="auto" maxH="400px">
+          {isLoading ? (
+            <Center p={10}>
+              <Spinner color="blue.500" thickness="3px" />
+            </Center>
+          ) : notifications.length === 0 ? (
+            <Center p={10} flexDirection="column">
+              <Box 
+                p={4} 
+                bg={useColorModeValue('gray.50', 'gray.700')} 
+                borderRadius="full" 
+                mb={3}
+              >
+                <BellIcon boxSize={8} color="gray.400" />
+              </Box>
+              <Text fontWeight="medium" color={textColor}>
+                No notifications yet
+              </Text>
+              <Text fontSize="sm" color={secondaryTextColor}>
+                We'll notify you when something happens
+              </Text>
+            </Center>
+          ) : (
+            <VStack spacing={0} align="stretch">
+              {notifications
+                .filter(n => !showUnreadOnly || !n.read)
+                .map((notification) => (
+                <Box
+                  key={notification.id}
+                  p={4}
+                  bg={notification.read ? 'transparent' : unreadBg}
+                  borderBottom="1px solid"
+                  borderColor={borderColor}
+                  transition="all 0.2s"
+                  _hover={{ bg: hoverBg }}
+                  cursor="pointer"
+                  onClick={() => markAsRead(notification.id)}
+                  position="relative"
+                  role="group"
+                >
+                  <Flex gap={3}>
+                    <Center 
+                      flexShrink={0} 
+                      w={10} 
+                      h={10} 
+                      borderRadius="lg" 
+                      bg={useColorModeValue('white', 'gray.800')}
+                      boxShadow="sm"
+                      border="1px solid"
+                      borderColor={borderColor}
+                    >
+                      {getNotificationIcon(notification.type)}
+                    </Center>
+                    
+                    <Box flex="1">
+                      <Flex justify="space-between" align="start">
+                        <Text
+                          fontWeight={notification.read ? "semibold" : "bold"}
+                          fontSize="sm"
+                          color={useColorModeValue('gray.800', 'white')}
+                          noOfLines={1}
+                        >
+                          {notification.title || 'Notification'}
+                        </Text>
+                        <HStack spacing={2}>
+                          <Text fontSize="xs" color={secondaryTextColor} whiteSpace="nowrap">
+                            {formatTime(notification.created_at)}
+                          </Text>
+                          <IconButton
+                            size="xs"
+                            icon={<FiXCircle />}
+                            variant="ghost"
+                            colorScheme="red"
+                            opacity={0}
+                            _groupHover={{ opacity: 1 }}
+                            onClick={(e) => deleteNotification(e, notification.id)}
+                            aria-label="Delete notification"
+                          />
+                        </HStack>
+                      </Flex>
+                      <Text
+                        fontSize="xs"
+                        color={secondaryTextColor}
+                        mt={0.5}
+                        noOfLines={2}
+                        lineHeight="short"
+                      >
+                        {notification.message}
+                      </Text>
+                    </Box>
+                  </Flex>
+                  {!notification.read && (
+                    <Box
+                      position="absolute"
+                      left={2}
+                      top="50%"
+                      transform="translateY(-50%)"
+                      w={1.5}
+                      h={1.5}
+                      borderRadius="full"
+                      bg="blue.500"
+                    />
+                  )}
+                </Box>
+              ))}
+            </VStack>
+          )}
+        </Box>
+        
         <Box p={3} borderTop="1px" borderColor={borderColor}>
           <Button
+            w="full"
             size="sm"
             variant="ghost"
             colorScheme="blue"
-            w="100%"
             onClick={() => {
               onNotificationsClose();
               navigate('/notifications');
             }}
           >
-            Notification Settings
+            View all activity
           </Button>
         </Box>
       </MenuList>
     </Menu>
   );
 };
-
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();

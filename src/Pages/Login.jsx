@@ -32,6 +32,7 @@ import { EmailIcon, LockIcon, ViewIcon, ViewOffIcon, } from '@chakra-ui/icons';
 // import { FaShieldAlt } from 'react-icons/fa';
 
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
 const LoginPage = () => {
   const { login } = useAuth();
@@ -89,20 +90,14 @@ const LoginPage = () => {
       const accessToken = tokenData.access;
        console.log(data);
       // Fetch user details with the token
-      const userResponse = await fetch(`${BACKEND_API}/api/me/`, { // Your user profile endpoint
-        method: 'GET',
+      const userResponse = await api.get('/api/me/', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
         },
       });
       
 
-      if (!userResponse.ok) {
-        throw new Error('Failed to fetch user details');
-      }
-
-      const userData = await userResponse.json();
+      const userData = userResponse.data;
        console.log(userData);
       
       // Create complete user object with token
@@ -182,7 +177,7 @@ const LoginPage = () => {
         break;
       
       case 'org_admin':
-        navigate('/user-management');
+        navigate('/dashboard');
         toast({
           title: 'Welcome Admin!',
           description: 'Redirecting to User Management',
@@ -248,7 +243,7 @@ const LoginPage = () => {
     }
     
     // Call Django REST API for password reset
-    fetch(`${BACKEND_API}/api/password-reset/`, { // Your password reset endpoint
+    fetch(`${BACKEND_API}/api/auth/forgot-password/`, { // Your password reset endpoint
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -62,6 +62,7 @@ const Dashboard = () => {
   const toast = useToast();
 
   const [summaryData, setSummaryData] = useState(null);
+  const [priorityData, setPriorityData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -84,157 +85,158 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
+
+    try {
+      const response = await api.get("api/alerts/priority-alerts/");
+      setPriorityData(response.data);
+    } catch (error) {
+      console.error("Error fetching dashboard summary:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Dashboard cards data mapping
-  const dashboardCards = summaryData ? [
-    {
-      id: 1,
-      title: "Total Assets",
-      value: summaryData.assets.total.toLocaleString(),
-      change: "+0%", // Default if not in API
-      isPositive: true,
-      icon: FiPackage,
-      color: "blue.500",
-      description: "Active assets in system",
-      trend: "up",
-    },
-    {
-      id: 2,
-      title: "Out of Service",
-      value: summaryData.assets.out_of_service,
-      change: "",
-      isPositive: false,
-      icon: FiTool,
-      color: "red.500",
-      description: "Currently not operational",
-      trend: "down",
-    },
-    {
-      id: 3,
-      title: "PM Due",
-      value: summaryData.assets.pm_due,
-      change: "",
-      isPositive: false,
-      icon: FiCalendar,
-      color: "orange.500",
-      description: "Preventive maintenance pending",
-      trend: "up",
-    },
-    {
-      id: 4,
-      title: "Calibration Due",
-      value: summaryData.assets.calibration_due,
-      change: "",
-      isPositive: false,
-      icon: FiAlertCircle,
-      color: "yellow.500",
-      description: "Requires calibration",
-      trend: "up",
-    },
-    {
-      id: 5,
-      title: "Warranty Expired",
-      value: summaryData.assets.warranty_expired,
-      change: "",
-      isPositive: false,
-      icon: FiShield,
-      color: "purple.500",
-      description: "Warranty ended",
-      trend: "warning",
-    },
-    {
-      id: 6,
-      title: "Issues Open",
-      value: summaryData.issues.open,
-      change: "",
-      isPositive: false,
-      icon: FiAlertTriangle,
-      color: "red.400",
-      description: "Active issues",
-      trend: "up",
-    },
-    {
-      id: 7,
-      title: "AMC/CMC covered",
-      value: summaryData.assets.amc_cmc_covered,
-      change: "",
-      isPositive: true,
-      icon: FiCreditCard,
-      color: "green.500",
-      description: "Covered assets",
-      trend: "up",
-    },
-    {
-      id: 8,
-      title: "License Expired",
-      value: summaryData.assets.license_expired,
-      change: "",
-      isPositive: false,
-      icon: FiFileText,
-      color: "teal.500",
-      description: "Expired licenses",
-      trend: "stable",
-    },
-    {
-      id: 9,
-      title: "Issues Closed",
-      value: summaryData.issues.closed,
-      change: "",
-      isPositive: true,
-      icon: FiCheckCircle,
-      color: "green.400",
-      description: "Resolved issues",
-      trend: "up",
-    },
-  ] : [];
+  const dashboardCards = summaryData
+    ? [
+        {
+          id: 1,
+          title: "Total Assets",
+          value: summaryData.assets.total.toLocaleString(),
+          change: "+0%", // Default if not in API
+          isPositive: true,
+          icon: FiPackage,
+          color: "blue.500",
+          description: "Active assets in system",
+          trend: "up",
+        },
+        {
+          id: 2,
+          title: "Out of Service",
+          value: summaryData.assets.out_of_service,
+          change: "",
+          isPositive: false,
+          icon: FiTool,
+          color: "red.500",
+          description: "Currently not operational",
+          trend: "down",
+        },
+        {
+          id: 3,
+          title: "PM Due",
+          value: summaryData.assets.pm_due,
+          change: "",
+          isPositive: false,
+          icon: FiCalendar,
+          color: "orange.500",
+          description: "Preventive maintenance pending",
+          trend: "up",
+        },
+        {
+          id: 4,
+          title: "Calibration Due",
+          value: summaryData.assets.calibration_due,
+          change: "",
+          isPositive: false,
+          icon: FiAlertCircle,
+          color: "yellow.500",
+          description: "Requires calibration",
+          trend: "up",
+        },
+        {
+          id: 5,
+          title: "Warranty Expired",
+          value: summaryData.assets.warranty_expired,
+          change: "",
+          isPositive: false,
+          icon: FiShield,
+          color: "purple.500",
+          description: "Warranty ended",
+          trend: "warning",
+        },
+        {
+          id: 6,
+          title: "Issues Open",
+          value: summaryData.issues.open,
+          change: "",
+          isPositive: false,
+          icon: FiAlertTriangle,
+          color: "red.400",
+          description: "Active issues",
+          trend: "up",
+        },
+        {
+          id: 7,
+          title: "AMC/CMC covered",
+          value: summaryData.assets.amc_cmc_covered,
+          change: "",
+          isPositive: true,
+          icon: FiCreditCard,
+          color: "green.500",
+          description: "Covered assets",
+          trend: "up",
+        },
+        {
+          id: 8,
+          title: "License Expired",
+          value: summaryData.assets.license_expired,
+          change: "",
+          isPositive: false,
+          icon: FiFileText,
+          color: "teal.500",
+          description: "Expired licenses",
+          trend: "stable",
+        },
+        {
+          id: 9,
+          title: "Issues Closed",
+          value: summaryData.issues.closed,
+          change: "",
+          isPositive: true,
+          icon: FiCheckCircle,
+          color: "green.400",
+          description: "Resolved issues",
+          trend: "up",
+        },
+      ]
+    : [];
 
   // Priority alerts data
-  const priorityAlerts = [
-    {
-      id: 1,
-      asset: "MRI Machine",
-      type: "PM Due",
-      days: 2,
-      priority: "high",
-      department: "Radiology",
-    },
-    {
-      id: 2,
-      asset: "CT Scanner",
-      type: "Calibration",
-      days: 5,
-      priority: "medium",
-      department: "Imaging",
-    },
-    {
-      id: 3,
-      asset: "Ventilator",
-      type: "Warranty",
-      days: 7,
-      priority: "high",
-      department: "ICU",
-    },
-    {
-      id: 4,
-      asset: "X-Ray Machine",
-      type: "Service",
-      days: 3,
-      priority: "medium",
-      department: "Emergency",
-    },
-    {
-      id: 5,
-      asset: "Ultrasound",
-      type: "Calibration",
-      days: 4,
-      priority: "medium",
-      department: "Maternity",
-    },
-  ];
+  const priorityAlerts = priorityData ? priorityData.alerts : [];
+  const priorityCount = priorityData ? priorityData.count : 0;
   const assetStatus = [
-    { status: "Operational", count: summaryData ? summaryData.assets.total - summaryData.assets.out_of_service : 0, percentage: summaryData ? Math.round(((summaryData.assets.total - summaryData.assets.out_of_service) / summaryData.assets.total) * 100) : 0, color: "green" },
-    { status: "Out of Service", count: summaryData ? summaryData.assets.out_of_service : 0, percentage: summaryData ? Math.round((summaryData.assets.out_of_service / summaryData.assets.total) * 100) : 0, color: "red" },
+    {
+      status: "Operational",
+      count: summaryData
+        ? summaryData.assets.total - summaryData.assets.out_of_service
+        : 0,
+      percentage: summaryData
+        ? Math.round(
+            ((summaryData.assets.total - summaryData.assets.out_of_service) /
+              summaryData.assets.total) *
+              100,
+          )
+        : 0,
+      color: "green",
+    },
+    {
+      status: "Out of Service",
+      count: summaryData ? summaryData.assets.out_of_service : 0,
+      percentage: summaryData
+        ? Math.round(
+            (summaryData.assets.out_of_service / summaryData.assets.total) *
+              100,
+          )
+        : 0,
+      color: "red",
+    },
   ];
 
   if (loading) {
@@ -246,7 +248,12 @@ const Dashboard = () => {
   }
 
   return (
-    <Box minH="100vh" bg={bgColor} p={{ base: 4, md: 6 }} pt={{ base: 0, md: 6 }}>
+    <Box
+      minH="100vh"
+      bg={bgColor}
+      p={{ base: 4, md: 6 }}
+      pt={{ base: 0, md: 6 }}
+    >
       {/* Dashboard Header */}
       <Box mb={6}>
         <Flex
@@ -258,7 +265,7 @@ const Dashboard = () => {
             <Heading size="md" color={headingColor} mb={2}>
               Welcome Back, {user.first_name}
             </Heading>
-            <Text color={textColor} fontSize={{base:"xs",lg:"sm"}}>
+            <Text color={textColor} fontSize={{ base: "xs", lg: "sm" }}>
               Comprehensive overview of assets and maintenance activities
             </Text>
           </Box>
@@ -266,7 +273,9 @@ const Dashboard = () => {
             <Badge colorScheme="green" p={2} borderRadius="md">
               <HStack>
                 <Icon as={FiClock} />
-                <Text fontSize={"10px"}>Updated : {new Date().toLocaleString()}</Text>
+                <Text fontSize={"10px"}>
+                  Updated : {new Date().toLocaleString()}
+                </Text>
               </HStack>
             </Badge>
             <Badge colorScheme="blue" p={2} borderRadius="md">
@@ -278,7 +287,7 @@ const Dashboard = () => {
           </HStack>
         </Flex>
       </Box>
-     
+
       {/* Main Dashboard Cards Grid */}
       <Grid templateColumns={{ base: "1fr", lg: "2fr 1fr" }} gap={6} mb={6}>
         {/* Left side - Main Dashboard Cards (2/3 width) */}
@@ -386,7 +395,7 @@ const Dashboard = () => {
           {/* Priority Alerts Section */}
           <Card
             bg={cardBg}
-            h={"335px"}
+            h={"350px"}
             overflowY={"auto"}
             border="1px"
             borderColor={borderColor}
@@ -410,63 +419,99 @@ const Dashboard = () => {
                   borderRadius="full"
                   px={3}
                 >
-                  {priorityAlerts.length} Alerts
+                  {priorityCount} Alerts
                 </Badge>
               </Flex>
             </CardHeader>
 
             <CardBody>
-              <VStack spacing={4} align="stretch">
-                {priorityAlerts.map((alert) => (
-                  <Box
-                    key={alert.id}
-                    p={4}
-                    borderRadius="md"
-                    border="1px"
-                    borderColor={borderColor}
-                    bg={useColorModeValue("gray.50", "gray.900")}
-                  >
-                    <Flex justify="space-between" align="center" mb={2}>
-                      <Heading size="sm" color={headingColor}>
-                        {alert.asset}
-                      </Heading>
-                      <HStack>
-                        <Tag size="sm" colorScheme="red" variant="subtle">
-                          Due in {alert.days} day{alert.days > 1 ? "s" : ""}
-                        </Tag>
-                      <Badge
-                        colorScheme={
-                          alert.priority === "high" ? "red" : "orange"
-                        }
-                        variant="subtle"
-                        borderRadius="full"
-                        px={3}
-                      >
-                        {alert.priority.toUpperCase()}
-                      </Badge>
-                  
+              {priorityCount > 0 ? (
+                <VStack spacing={4} align="stretch">
+                  {priorityAlerts.map((alert) => (
+                    <Box
+                      key={alert.id}
+                      p={4}
+                      borderRadius="md"
+                      border="1px"
+                      borderColor={borderColor}
+                      bg={useColorModeValue("gray.50", "gray.900")}
+                    >
+                      <Flex justify="space-between" align="center" mb={2}>
+                        <Heading size="sm" color={headingColor}>
+                          {alert.asset_name}
+                        </Heading>
+                        <HStack>
+                          <Badge
+                            colorScheme={
+                              alert.status === "open" ? "red" : "orange"
+                            }
+                            variant="subtle"
+                            borderRadius="full"
+                            px={3}
+                          >
+                            {alert.status.toUpperCase()}
+                          </Badge>
+                          <Tag size="sm" colorScheme="red" variant="subtle">
+                            Due in {
+                              Math.ceil((new Date() - new Date(alert.created_at)) / (1000 * 60 * 60 * 24))
+                            } day{
+                              Math.ceil((new Date() - new Date(alert.created_at)) / (1000 * 60 * 60 * 24)) > 1 ? "s" : ""
+                            }
+                          </Tag>
+
+
+                          <Badge
+                            colorScheme={
+                              alert.priority === "high" ? "red" : "orange"
+                            }
+                            variant="subtle"
+                            borderRadius="full"
+                            px={3}
+                          >
+                            {alert.priority.toUpperCase()}
+                          </Badge>
                         </HStack>
-                    </Flex>
-                    <Flex justify="space-between" align="center">
-                      <VStack align="start" spacing={1}>
-                        <Text fontSize="sm" color={textColor}>
-                          {alert.type} • {alert.department}
-                        </Text>
-                        
-                      </VStack>
-                      {/* <Badge
-                        colorScheme={alert.days <= 3 ? "red" : "orange"}
-                        variant="solid"
-                        borderRadius="full"
-                        px={3}
-                        py={1}
-                      >
-                        {alert.days <= 3 ? "URGENT" : "WARNING"}
-                      </Badge> */}
-                    </Flex>
-                  </Box>
-                ))}
-              </VStack>
+                      </Flex>
+                      <Flex justify="space-between" align="center">
+                        <VStack align="start" spacing={1}>
+                          <Text fontSize="sm" color={textColor}>
+                            {alert.alert_type}
+                          </Text>
+                        </VStack>
+                      </Flex>
+                      <Flex justify="space-between" align="center">
+                        <VStack align="start" spacing={1}>
+                          <Text fontSize="sm" color={textColor}>
+                            {alert.message}
+                          </Text>
+                        </VStack>
+                      </Flex>
+                    </Box>
+                  ))}
+                </VStack>
+              ) : (
+                <Box
+                  p={8}
+                  borderRadius="md"
+                  border="1px"
+                  borderColor={borderColor}
+                  bg={useColorModeValue("gray.50", "gray.900")}
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  minH="200px"
+                >
+                  <VStack spacing={3}>
+                    <Icon as={FiCheckCircle} boxSize={8} color="green.500" />
+                    <Text color={textColor} fontSize="md" textAlign="center">
+                      No priority alerts at the moment
+                    </Text>
+                    <Text color={textColor} fontSize="sm" textAlign="center">
+                      All assets are functioning well!
+                    </Text>
+                  </VStack>
+                </Box>
+              )}
             </CardBody>
 
             <CardFooter
@@ -488,7 +533,6 @@ const Dashboard = () => {
               </Flex>
             </CardFooter>
           </Card>
-
         </VStack>
       </Grid>
     </Box>

@@ -14,6 +14,7 @@ import Plan from './Pages/Plan';
 import Amc from './Pages/AMC';
 import Settings from './Pages/Settings';
 import Services from './Pages/Services';
+import ResetPassword from './Pages/ResetPassword';
 import { useAuth } from './context/AuthContext';
 import { ClassNames } from '@emotion/react';
 
@@ -40,6 +41,7 @@ function App() {
       <Box>
         <Routes>
           <Route path='/' element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path='/reset-password/:uid/:token' element={<PublicRoute><ResetPassword /></PublicRoute>} />
           
           <Route path='/plan' element={<ProtectedRoute><Plan /></ProtectedRoute>}/>
           <Route path='/subscription' element={<ProtectedRoute><Subscription /></ProtectedRoute>}/>

@@ -33,9 +33,11 @@ import {
 } from "@chakra-ui/react";
 
 import { FiPlus, FiSave, FiTrash2, FiSettings } from "react-icons/fi";
+import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 const Settings = () => {
-  const BACKEND_API = import.meta.env.VITE_API_URL;
+  const { user } = useAuth();
   const toast = useToast();
 
   const bgColor = useColorModeValue("gray.50", "gray.900");
@@ -58,50 +60,38 @@ const Settings = () => {
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
-  const [userData, setUserData] = useState(null);
+  const [units, setUnits] = useState([]);
+  const [selectedUnitId, setSelectedUnitId] = useState("");
 
   useEffect(() => {
-    loadUserData();
-  }, []);
-
-  useEffect(() => {
-    if (userData?.unit?.id) fetchAssetSchema();
-  }, [userData]);
-
-  // Load user from storage
-  const loadUserData = () => {
-    let storedUser =
-      localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (storedUser) {
-      try {
-        setUserData(JSON.parse(storedUser));
-      } catch (error) {
-        console.error("Error parsing user data:", error);
-      }
+    if (user?.role === "org_admin") {
+      fetchUnits();
+    } else if (user?.role === "unit_admin" && user?.unit?.id) {
+      setSelectedUnitId(user.unit.id);
     }
-  };
+  }, [user]);
 
-  const getAccessToken = () => {
-    return (
-      localStorage.getItem("access_token") ||
-      sessionStorage.getItem("access_token")
-    );
+  useEffect(() => {
+    if (selectedUnitId) fetchAssetSchema();
+  }, [selectedUnitId]);
+
+  const fetchUnits = async () => {
+    try {
+      const response = await api.get("/api/units/");
+      setUnits(response.data || []);
+    } catch (error) {
+      toast({
+        title: "Error loading units",
+        description: error.response?.data?.detail || error.message,
+        status: "error",
+      });
+    }
   };
 
   const fetchAssetSchema = async () => {
     try {
-      const accessToken = getAccessToken();
-      const response = await fetch(
-        `${BACKEND_API}/api/units/${userData.unit.id}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const data = await response.json();
+      const response = await api.get(`/api/units/${selectedUnitId}/`);
+      const data = response.data;
       const schema = data.asset_schema || [];
       setAssetSchema(schema);
 
@@ -139,21 +129,9 @@ const Settings = () => {
     const updatedSchema = [...assetSchema, { ...newField }];
 
     try {
-      const accessToken = getAccessToken();
-
-      const res = await fetch(
-        `${BACKEND_API}/api/units/${userData.unit.id}/update-asset-schema/`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ asset_schema: updatedSchema }),
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to save new field");
+      await api.put(`/api/units/${selectedUnitId}/update-asset-schema/`, {
+        asset_schema: updatedSchema,
+      });
 
       setAssetSchema(updatedSchema);
 
@@ -168,7 +146,7 @@ const Settings = () => {
     } catch (error) {
       toast({
         title: "Error Adding Field",
-        description: error.message,
+        description: error.response?.data?.detail || error.message,
         status: "error",
       });
     }
@@ -179,21 +157,9 @@ const Settings = () => {
     const updatedSchema = assetSchema.filter((_, i) => i !== index);
 
     try {
-      const accessToken = getAccessToken();
-
-      const res = await fetch(
-        `${BACKEND_API}/api/units/${userData.unit.id}/update-asset-schema/`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ asset_schema: updatedSchema }),
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to remove field");
+      await api.put(`/api/units/${selectedUnitId}/update-asset-schema/`, {
+        asset_schema: updatedSchema,
+      });
 
       setAssetSchema(updatedSchema);
 
@@ -204,7 +170,7 @@ const Settings = () => {
     } catch (error) {
       toast({
         title: "Error Removing Field",
-        description: error.message,
+        description: error.response?.data?.detail || error.message,
         status: "error",
       });
     }
@@ -214,21 +180,9 @@ const Settings = () => {
   const handleSaveSchema = async () => {
     setIsSaving(true);
     try {
-      const accessToken = getAccessToken();
-
-      const res = await fetch(
-        `${BACKEND_API}/api/units/${userData.unit.id}/update-asset-schema/`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ asset_schema: assetSchema }),
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to save schema");
+      await api.put(`/api/units/${selectedUnitId}/update-asset-schema/`, {
+        asset_schema: assetSchema,
+      });
 
       toast({
         title: "Schema Saved",
@@ -237,7 +191,7 @@ const Settings = () => {
     } catch (err) {
       toast({
         title: "Error Saving Schema",
-        description: err.message,
+        description: err.response?.data?.detail || err.message,
         status: "error",
       });
     } finally {
@@ -254,8 +208,8 @@ const Settings = () => {
   ];
 
   return (
-    <Box bg={bgColor} minH="100vh" p={{ base: 4, md: 8 }} pt={{ base: 0, md: 8 }}>
-      <Container maxW="6xl">
+    <Box bg={bgColor} minH="100vh" p={{ base: 4, md: 8 }} pt={{ base: 0, md: 8 }} >
+      
         <VStack spacing={6} align="stretch">
           <HStack spacing={3}>
             <Icon as={FiSettings} boxSize={8} color="blue.500" />
@@ -284,8 +238,23 @@ const Settings = () => {
             <Divider />
             <CardBody>
               <VStack spacing={4} align="stretch">
-                <HStack spacing={4}>
+                <Flex spacing={4} gap={4} flexDirection={{base:"column",md:"row"}}>
                   <FormControl isRequired>
+                    <FormLabel>Unit</FormLabel>
+                    <Select
+                      placeholder="Select Unit"
+                      value={selectedUnitId}
+                      onChange={(e) => setSelectedUnitId(e.target.value)}
+                      isDisabled={userData?.role === "unit_admin"}
+                    >
+                      {units.map((unit) => (
+                        <option key={unit.id} value={unit.id}>
+                          {unit.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <FormControl isRequired isDisabled={!selectedUnitId}>
                     <FormLabel>Field Key</FormLabel>
                     <Input
                       value={newField.key}
@@ -295,7 +264,7 @@ const Settings = () => {
                     />
                   </FormControl>
 
-                  <FormControl isRequired>
+                  <FormControl isRequired isDisabled={!selectedUnitId}>
                     <FormLabel>Field Label</FormLabel>
                     <Input
                       value={newField.label}
@@ -305,7 +274,7 @@ const Settings = () => {
                     />
                   </FormControl>
 
-                  <FormControl isRequired>
+                  <FormControl isRequired isDisabled={!selectedUnitId}>
                     <FormLabel>Field Type</FormLabel>
                     <Select
                       value={newField.type}
@@ -320,12 +289,12 @@ const Settings = () => {
                       ))}
                     </Select>
                   </FormControl>
-                </HStack>
+                </Flex>
 
                 {/* CATEGORY */}
                 <HStack spacing={4} w="100%">
-                  <FormControl isRequired>
-                    <FormLabel>Category</FormLabel>
+                  <FormControl isRequired isDisabled={!selectedUnitId}>
+                    <FormLabel> Field Category</FormLabel>
                     <Select
                       value={newField.category}
                       onChange={(e) => {
@@ -352,7 +321,7 @@ const Settings = () => {
                   </FormControl>
 
                   {showNewCategoryInput && (
-                    <FormControl>
+                    <FormControl isDisabled={!selectedUnitId}>
                       <FormLabel>New Category</FormLabel>
                       <Input
                         placeholder="Enter category"
@@ -375,7 +344,12 @@ const Settings = () => {
                   )}
                 </HStack>
 
-                <Button leftIcon={<FiPlus />} colorScheme="blue" onClick={handleAddField}>
+                <Button 
+                  leftIcon={<FiPlus />} 
+                  colorScheme="blue" 
+                  onClick={handleAddField}
+                  isDisabled={!selectedUnitId}
+                >
                   Add Field
                 </Button>
               </VStack>
@@ -439,7 +413,6 @@ const Settings = () => {
             </CardBody>
           </Card>
         </VStack>
-      </Container>
     </Box>
   );
 };

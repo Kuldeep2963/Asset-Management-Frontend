@@ -45,10 +45,12 @@ import {
   FiTool,
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import AssignContractModal from '../Components/modals/AssignContractModal';
 
 const AssetInventory = () => {
-  const BACKEND_API = import.meta.env.VITE_API_URL;
+  const { user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -62,61 +64,25 @@ const AssetInventory = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
-  const [userData, setUserData] = useState(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
 
   useEffect(() => {
-    loadUserData();
-  }, []);
-
-  useEffect(() => {
-    if (userData) {
+    if (user) {
       fetchAssets();
     }
-  }, [userData]);
-
-  const loadUserData = () => {
-    let storedUser =
-      localStorage.getItem('user') || sessionStorage.getItem('user');
-    if (storedUser) {
-      try {
-        setUserData(JSON.parse(storedUser));
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-      }
-    }
-  };
-
-  const getAccessToken = () => {
-    return (
-      localStorage.getItem('access_token') ||
-      sessionStorage.getItem('access_token')
-    );
-  };
+  }, [user]);
 
   const fetchAssets = async () => {
     setLoading(true);
     try {
-      const accessToken = getAccessToken();
-      const response = await fetch(`${BACKEND_API}/api/assets/`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch assets');
-      }
-
-      const data = await response.json();
-      setAssets(data || []);
+      const response = await api.get('/api/assets/');
+      setAssets(response.data || []);
     } catch (error) {
       console.error('Error loading assets:', error);
       toast({
         title: 'Error loading assets',
-        description: error.message,
+        description: error.response?.data?.detail || error.message,
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -132,17 +98,7 @@ const AssetInventory = () => {
     }
 
     try {
-      const accessToken = getAccessToken();
-      const response = await fetch(`${BACKEND_API}/api/assets/${assetId}/`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete asset');
-      }
+      await api.delete(`/api/assets/${assetId}/`);
 
       toast({
         title: 'Asset deleted',
@@ -155,7 +111,7 @@ const AssetInventory = () => {
     } catch (error) {
       toast({
         title: 'Error deleting asset',
-        description: error.message,
+        description: error.response?.data?.detail || error.message,
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -179,7 +135,7 @@ const AssetInventory = () => {
     navigate(`/add-asset?id=${asset.id}&view=true`);
   };
 
-  const canManageAssets = userData?.role === 'org_admin' || userData?.role === 'unit_admin';
+  const canManageAssets = user?.role === 'org_admin' || user?.role === 'unit_admin';
 
   const handleEdit = (assetId) => {
     navigate(`/add-asset?id=${assetId}`);

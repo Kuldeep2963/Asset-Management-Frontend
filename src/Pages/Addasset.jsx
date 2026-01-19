@@ -40,11 +40,12 @@ import {
   FiTool,
 } from "react-icons/fi";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import api from "../services/api";
 import AssignContractModal from "../Components/modals/AssignContractModal";
 import { useAuth } from "../context/AuthContext";
 
 const AddAsset = () => {
-  const { user, accessToken } = useAuth();
+  const { user } = useAuth();
   const BACKEND_API = import.meta.env.VITE_API_URL;
   const toast = useToast();
   const [searchParams] = useSearchParams();
@@ -138,19 +139,8 @@ const AddAsset = () => {
 
   const fetchContractDetails = async (contractId) => {
     try {
-      const response = await fetch(
-        `${BACKEND_API}/api/contracts/${contractId}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setAmcDetails(data);
-      }
+      const response = await api.get(`/api/contracts/${contractId}/`);
+      setAmcDetails(response.data);
     } catch (error) {
       console.error("Error fetching contract details:", error);
     }
@@ -159,18 +149,8 @@ const AddAsset = () => {
   const fetchAssetData = async (id) => {
     setLoading((prev) => ({ ...prev, asset: true }));
     try {
-      const response = await fetch(`${BACKEND_API}/api/assets/${id}/`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch asset data");
-      }
-
-      const data = await response.json();
+      const response = await api.get(`/api/assets/${id}/`);
+      const data = response.data;
 
       setDefaultFields({
         organization: data.organization || "",
@@ -197,7 +177,7 @@ const AddAsset = () => {
     } catch (error) {
       toast({
         title: "Error loading asset",
-        description: error.message,
+        description: error.response?.data?.detail || error.message,
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -209,14 +189,8 @@ const AddAsset = () => {
 
   const fetchAssetSchema = async (unitId) => {
     try {
-      const response = await fetch(`${BACKEND_API}/api/units/${unitId}/`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = await response.json();
+      const response = await api.get(`/api/units/${unitId}/`);
+      const data = response.data;
       const schema = data.asset_schema || [];
       setAssetSchema(schema);
 
@@ -246,27 +220,13 @@ const AddAsset = () => {
   const fetchDepartments = async (unitId) => {
     setLoading((prev) => ({ ...prev, departments: true }));
     try {
-      const response = await fetch(
-        `${BACKEND_API}/api/departments/?unit_id=${unitId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch departments");
-      }
-
-      const data = await response.json();
-      setDepartments(data || []);
+      const response = await api.get(`/api/departments/?unit_id=${unitId}`);
+      setDepartments(response.data || []);
     } catch (error) {
       console.error("Error loading departments:", error);
       toast({
         title: "Error loading departments",
-        description: error.message,
+        description: error.response?.data?.detail || error.message,
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -279,24 +239,13 @@ const AddAsset = () => {
   const fetchUnits = async () => {
     setLoading((prev) => ({ ...prev, units: true }));
     try {
-      const response = await fetch(`${BACKEND_API}/api/units/`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch units");
-      }
-
-      const data = await response.json();
-      setUnits(data || []);
+      const response = await api.get(`/api/units/`);
+      setUnits(response.data || []);
     } catch (error) {
       console.error("Error loading units:", error);
       toast({
         title: "Error loading units",
-        description: error.message,
+        description: error.response?.data?.detail || error.message,
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -435,30 +384,11 @@ const AddAsset = () => {
         attributes: customFields,
       };
 
-      const url = isEditMode
-        ? `${BACKEND_API}/api/assets/${assetId}/`
-        : `${BACKEND_API}/api/assets/`;
+      const response = isEditMode
+        ? await api.put(`/api/assets/${assetId}/`, assetData)
+        : await api.post(`/api/assets/`, assetData);
 
-      const method = isEditMode ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(assetData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.message ||
-            `Failed to ${isEditMode ? "update" : "add"} asset`
-        );
-      }
-
-      const data = await response.json();
+      const data = response.data;
 
       toast({
         title: isEditMode ? "Asset Updated" : "Asset Added",
@@ -493,7 +423,7 @@ const AddAsset = () => {
       toast({
         title: "Error",
         description:
-          error.message || `Failed to ${isEditMode ? "update" : "add"} asset`,
+          error.response?.data?.detail || error.message || `Failed to ${isEditMode ? "update" : "add"} asset`,
         status: "error",
         duration: 5000,
         isClosable: true,

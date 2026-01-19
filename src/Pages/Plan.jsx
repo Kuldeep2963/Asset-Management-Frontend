@@ -193,6 +193,7 @@ const PlanManagement = () => {
   // Form state
   const [formData, setFormData] = useState({
     name: "",
+    description: "",
     price: 0,
     duration_days: 0,
     max_units: 0,
@@ -390,25 +391,13 @@ const PlanManagement = () => {
     setFormData({
       name: "",
       description: "",
-      tier: "basic",
-      monthlyPrice: 0,
-      annualPrice: 0,
-      isActive: true,
-      isPopular: false,
-      limits: {
-        users: 0,
-        assets: 0,
-        storageGB: 0,
-        apiCallsPerDay: 0,
-        supportLevel: "basic",
-        retentionDays: 30,
-      },
-      features: [],
-      customFeatures: "",
-      billingCycles: ["monthly", "annual"],
-      trialDays: 0,
-      maxOrganizations: 1,
-      colorScheme: "blue",
+      price: 0,
+      duration_days: 0,
+      max_units: 0,
+      max_assets: 0,
+      max_users: 0,
+      is_active: true,
+      is_default: false,
     });
     setTempFeatures([]);
     setFeatureInput("");
@@ -435,6 +424,7 @@ const PlanManagement = () => {
       setIsSubmitting(true);
       const planData = {
         name: formData.name,
+        description: formData.description,
         price: formData.price,
         duration_days: formData.duration_days,
         max_units: formData.max_units,
@@ -471,19 +461,21 @@ const PlanManagement = () => {
     }
   };
 
-  const handleEditPlan = (plan) => {
+  const handleEditPlan = (plan, editing = true) => {
     setSelectedPlan(plan);
+    setIsEditing(editing);
     setFormData({
-      name: plan.name,
-      price: plan.price,
-      duration_days: plan.duration_days,
-      max_units: plan.max_units,
-      max_assets: plan.max_assets,
-      max_users: plan.max_users,
-      is_active: true,
-      is_default: false,
+      name: plan.name || "",
+      description: plan.description || "",
+      price: plan.price || 0,
+      duration_days: plan.duration_days || 0,
+      max_units: plan.max_units || 0,
+      max_assets: plan.max_assets || 0,
+      max_users: plan.max_users || 0,
+      is_active: plan.is_active !== undefined ? plan.is_active : true,
+      is_default: plan.is_default !== undefined ? plan.is_default : false,
     });
-    setTempFeatures([...plan.features]);
+    setTempFeatures(plan.features || []);
     onEditOpen();
   };
 
@@ -494,6 +486,7 @@ const PlanManagement = () => {
       setIsSubmitting(true);
       const planData = {
         name: formData.name,
+        description: formData.description,
         price: formData.price,
         duration_days: formData.duration_days,
         max_units: formData.max_units,
@@ -566,6 +559,7 @@ const PlanManagement = () => {
       setIsSubmitting(true);
       const duplicatedPlanData = {
         name: `${plan.name} (Copy)`,
+        description: plan.description,
         price: plan.price,
         duration_days: plan.duration_days,
         max_units: plan.max_units,
@@ -795,14 +789,14 @@ const PlanManagement = () => {
                                     icon={<FaEye />}
                                     size="sm"
                                     variant="ghost"
-                                    onClick={() => handleEditPlan(plan)}
+                                    onClick={() => handleEditPlan(plan, false)}
                                   />
                                   <IconButton
                                     icon={<FaEdit />}
                                     size="sm"
                                     variant="ghost"
                                     colorScheme="blue"
-                                    onClick={() => handleEditPlan(plan)}
+                                    onClick={() => handleEditPlan(plan, true)}
                                   />
                                   <IconButton
                                     icon={<FaCopy />}
@@ -920,7 +914,7 @@ const PlanManagement = () => {
                           </Td>
                           <Td textAlign="center">
                             <Badge
-                              colorScheme={plan.isActive ? "red" : "green"}
+                              colorScheme={plan.is_active ? "green" : "red"}
                               cursor="pointer"
                               onClick={() => togglePlanStatus(plan.id)}
                               display="inline-flex"
@@ -936,14 +930,14 @@ const PlanManagement = () => {
                                 icon={<FaEye />}
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => handleEditPlan(plan)}
+                                onClick={() => handleEditPlan(plan, false)}
                               />
                               <IconButton
                                 icon={<FaEdit />}
                                 size="sm"
                                 variant="ghost"
                                 colorScheme="blue"
-                                onClick={() => handleEditPlan(plan)}
+                                onClick={() => handleEditPlan(plan, true)}
                               />
                               <IconButton
                                 icon={<FaCopy />}
@@ -1086,6 +1080,17 @@ const PlanManagement = () => {
                       </FormControl>
 
                       <FormControl>
+                        <FormLabel>Description</FormLabel>
+                        <Textarea
+                          name="description"
+                          value={formData.description}
+                          onChange={handleInputChange}
+                          placeholder="Describe this plan"
+                          rows={3}
+                        />
+                      </FormControl>
+
+                      <FormControl>
                         <FormLabel>Price</FormLabel>
                         <NumberInput
                           value={formData.price}
@@ -1120,6 +1125,15 @@ const PlanManagement = () => {
                             <NumberDecrementStepper />
                           </NumberInputStepper>
                         </NumberInput>
+                      </FormControl>
+
+                      <FormControl display="flex" alignItems="center">
+                        <FormLabel mb="0">Active Status</FormLabel>
+                        <Switch
+                          name="is_active"
+                          isChecked={formData.is_active}
+                          onChange={handleInputChange}
+                        />
                       </FormControl>
                     </VStack>
                   </CardBody>
@@ -1278,14 +1292,14 @@ const PlanManagement = () => {
         <ModalContent>
           <ModalHeader>
             <HStack>
-              <FaEdit />
-              <Text>Edit Plan: {selectedPlan?.name}</Text>
+              {isEditing ? <FaEdit /> : <FaEye />}
+              <Text>{isEditing ? "Edit" : "View"} Plan: {selectedPlan?.name}</Text>
             </HStack>
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody maxH="70vh" overflowY="auto">
             <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={6}>
-              {/* Same form structure as Create Modal */}
+              {/* Left Column - Basic Info */}
               <GridItem>
                 <Card bg={cardBg} mb={6}>
                   <CardHeader bg={useColorModeValue("blue.50", "blue.900")}>
@@ -1293,7 +1307,7 @@ const PlanManagement = () => {
                   </CardHeader>
                   <CardBody>
                     <VStack spacing={4}>
-                      <FormControl isRequired>
+                      <FormControl isRequired isReadOnly={!isEditing}>
                         <FormLabel>Plan Name</FormLabel>
                         <Input
                           name="name"
@@ -1303,119 +1317,144 @@ const PlanManagement = () => {
                         />
                       </FormControl>
 
-                      <FormControl>
+                      <FormControl isReadOnly={!isEditing}>
                         <FormLabel>Description</FormLabel>
                         <Textarea
                           name="description"
                           value={formData.description}
                           onChange={handleInputChange}
-                          placeholder="Describe this plan for customers"
+                          placeholder="Describe this plan"
                           rows={3}
                         />
                       </FormControl>
 
-                      <FormControl isRequired>
-                        <FormLabel>Tier Level</FormLabel>
-                        <Select
-                          name="tier"
-                          value={formData.tier}
-                          onChange={handleInputChange}
+                      <FormControl isReadOnly={!isEditing}>
+                        <FormLabel>Price</FormLabel>
+                        <NumberInput
+                          value={formData.price}
+                          onChange={(value) =>
+                            setFormData((prev) => ({ ...prev, price: value }))
+                          }
+                          min={0}
                         >
-                          {tierOptions.map((tier) => (
-                            <option key={tier.value} value={tier.value}>
-                              {tier.label}
-                            </option>
-                          ))}
-                        </Select>
+                          <NumberInputField />
+                          {!isEditing ? null : (
+                            <NumberInputStepper>
+                              <NumberIncrementStepper />
+                              <NumberDecrementStepper />
+                            </NumberInputStepper>
+                          )}
+                        </NumberInput>
                       </FormControl>
 
-                      <HStack width="full">
-                        <FormControl>
-                          <FormLabel>Monthly Price ($)</FormLabel>
-                          <NumberInput
-                            value={formData.monthlyPrice}
-                            onChange={(value) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                monthlyPrice: value,
-                              }))
-                            }
-                            min={0}
-                          >
-                            <NumberInputField />
+                      <FormControl isReadOnly={!isEditing}>
+                        <FormLabel>Duration (In Days)</FormLabel>
+                        <NumberInput
+                          value={formData.duration_days}
+                          onChange={(value) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              duration_days: value,
+                            }))
+                          }
+                          min={0}
+                        >
+                          <NumberInputField />
+                          {!isEditing ? null : (
                             <NumberInputStepper>
                               <NumberIncrementStepper />
                               <NumberDecrementStepper />
                             </NumberInputStepper>
-                          </NumberInput>
-                        </FormControl>
+                          )}
+                        </NumberInput>
+                      </FormControl>
 
-                        <FormControl>
-                          <FormLabel>Annual Price ($)</FormLabel>
-                          <NumberInput
-                            value={formData.annualPrice}
-                            onChange={(value) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                annualPrice: value,
-                              }))
-                            }
-                            min={0}
-                          >
-                            <NumberInputField />
-                            <NumberInputStepper>
-                              <NumberIncrementStepper />
-                              <NumberDecrementStepper />
-                            </NumberInputStepper>
-                          </NumberInput>
-                        </FormControl>
-                      </HStack>
+                      <FormControl display="flex" alignItems="center">
+                        <FormLabel mb="0">Active Status</FormLabel>
+                        <Switch
+                          name="is_active"
+                          isChecked={formData.is_active}
+                          onChange={handleInputChange}
+                          isDisabled={!isEditing}
+                        />
+                      </FormControl>
                     </VStack>
                   </CardBody>
                 </Card>
               </GridItem>
 
+              {/* Right Column - Limits */}
               <GridItem>
-                <Card bg={cardBg}>
+                <Card bg={cardBg} mb={6}>
                   <CardHeader bg={useColorModeValue("purple.50", "purple.900")}>
-                    <Heading size="md">Plan Features</Heading>
+                    <Heading size="md">Plan Limits</Heading>
                   </CardHeader>
                   <CardBody>
-                    <VStack spacing={4} align="stretch">
-                      <FormControl>
-                        <FormLabel>Add Features</FormLabel>
-                        <HStack>
-                          <Input
-                            value={featureInput}
-                            onChange={(e) => setFeatureInput(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            placeholder="e.g., Priority Support"
-                          />
-                          <Button onClick={addFeature} colorScheme="blue">
-                            Add
-                          </Button>
-                        </HStack>
+                    <VStack spacing={4}>
+                      <FormControl isReadOnly={!isEditing}>
+                        <FormLabel>Max Users</FormLabel>
+                        <NumberInput
+                          value={formData.max_users}
+                          onChange={(value) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              max_users: value,
+                            }))
+                          }
+                          min={0}
+                        >
+                          <NumberInputField />
+                          {!isEditing ? null : (
+                            <NumberInputStepper>
+                              <NumberIncrementStepper />
+                              <NumberDecrementStepper />
+                            </NumberInputStepper>
+                          )}
+                        </NumberInput>
+                      </FormControl>
+                      <FormControl isReadOnly={!isEditing}>
+                        <FormLabel>Max Units</FormLabel>
+                        <NumberInput
+                          value={formData.max_units}
+                          onChange={(value) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              max_units: value,
+                            }))
+                          }
+                          min={0}
+                        >
+                          <NumberInputField />
+                          {!isEditing ? null : (
+                            <NumberInputStepper>
+                              <NumberIncrementStepper />
+                              <NumberDecrementStepper />
+                            </NumberInputStepper>
+                          )}
+                        </NumberInput>
                       </FormControl>
 
-                      <Box>
-                        <FormLabel>Selected Features</FormLabel>
-                        <Flex wrap="wrap" gap={2}>
-                          {tempFeatures.map((feature, index) => (
-                            <Tag
-                              key={index}
-                              size="md"
-                              borderRadius="full"
-                              variant="solid"
-                              colorScheme="blue"
-                            >
-                              <TagLabel>{feature}</TagLabel>
-                              <TagCloseButton
-                                onClick={() => removeFeature(index)}
-                              />
-                            </Tag>
-                          ))}
-                        </Flex>
-                      </Box>
+                      <FormControl isReadOnly={!isEditing}>
+                        <FormLabel>Max Assets</FormLabel>
+                        <NumberInput
+                          value={formData.max_assets}
+                          onChange={(value) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              max_assets: value,
+                            }))
+                          }
+                          min={0}
+                        >
+                          <NumberInputField />
+                          {!isEditing ? null : (
+                            <NumberInputStepper>
+                              <NumberIncrementStepper />
+                              <NumberDecrementStepper />
+                            </NumberInputStepper>
+                          )}
+                        </NumberInput>
+                      </FormControl>
                     </VStack>
                   </CardBody>
                 </Card>
@@ -1425,15 +1464,18 @@ const PlanManagement = () => {
           <ModalFooter>
             <HStack spacing={3}>
               <Button variant="ghost" onClick={onEditClose}>
-                Cancel
+                {isEditing ? "Cancel" : "Close"}
               </Button>
-              <Button
-                leftIcon={<FaSave />}
-                colorScheme="blue"
-                onClick={handleUpdatePlan}
-              >
-                Update Plan
-              </Button>
+              {isEditing && (
+                <Button
+                  leftIcon={<FaSave />}
+                  colorScheme="blue"
+                  onClick={handleUpdatePlan}
+                  isLoading={isSubmitting}
+                >
+                  Update Plan
+                </Button>
+              )}
             </HStack>
           </ModalFooter>
         </ModalContent>
