@@ -303,7 +303,14 @@ const UserManagement = () => {
         organization: userData.organization.id,
       }));
     }
-  }, [userData]);
+    // Set default unit for newDepartment if user is unit_admin
+    if (userRole === "unit_admin" && userData?.unit?.id) {
+      setNewDepartment((prev) => ({
+        ...prev,
+        unit: userData.unit.id,
+      }));
+    }
+  }, [userData, userRole]);
 
   // Load data based on user role
   useEffect(() => {
@@ -736,7 +743,10 @@ const UserManagement = () => {
       });
       await fetchDepartments();
       onDepartmentClose();
-      setNewDepartment({ name: "", unit: "" });
+      setNewDepartment({
+        name: "",
+        unit: userRole === "unit_admin" ? userData?.unit?.id || "" : "",
+      });
     } catch (error) {
       toast({
         title: "Error adding department",
@@ -2924,6 +2934,32 @@ const UserManagement = () => {
           <ModalCloseButton color="white" />
           <ModalBody>
             <VStack spacing={4}>
+              <FormControl isRequired>
+                <FormLabel>Unit</FormLabel>
+                <Select
+                  placeholder="Select Unit"
+                  value={newDepartment.unit}
+                  onChange={(e) =>
+                    setNewDepartment({
+                      ...newDepartment,
+                      unit: e.target.value,
+                    })
+                  }
+                  isDisabled={userRole === "unit_admin"}
+                >
+                  {userRole === "org_admin" &&
+                    units.map((unit) => (
+                      <option key={unit.id} value={unit.id}>
+                        {unit.name}
+                      </option>
+                    ))}
+                  {userRole === "unit_admin" && userData?.unit && (
+                    <option value={userData.unit.id}>
+                      {userData.unit.name}
+                    </option>
+                  )}
+                </Select>
+              </FormControl>
               <FormControl isRequired>
                 <FormLabel>Department Name</FormLabel>
                 <Input
