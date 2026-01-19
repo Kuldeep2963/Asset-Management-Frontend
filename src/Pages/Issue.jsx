@@ -127,7 +127,7 @@ import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { formatDistanceToNow } from "date-fns";
-import CommentModal from "../components/modals/CommentModal";
+import CommentModal from "../Components/modals/CommentModal";
 const Issue = () => {
   const { user } = useAuth();
   const toast = useToast();
