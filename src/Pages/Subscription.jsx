@@ -608,7 +608,7 @@ const Subscription = () => {
           <Text color={textColor} mb={4}>
             Contact our sales team for custom enterprise solutions with tailored limits and features.
           </Text>
-          <Button colorScheme="blue" onClick={() => window.open('mailto:sales@assetmanagement.com', '_blank')}>
+          <Button colorScheme="blue" onClick={() => window.open('mailto:kt639539@gmail.com', '_blank')}>
             Contact Sales Team
           </Button>
         </Alert>
