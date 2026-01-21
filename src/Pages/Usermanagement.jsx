@@ -197,15 +197,16 @@ const UserManagement = () => {
 
   // Edit states
   const [editingAdminId, setEditingAdminId] = useState(null);
-  const [editingAdminData, setEditingAdminData] = useState({});
   const [editingOrgId, setEditingOrgId] = useState(null);
-  const [editingOrgData, setEditingOrgData] = useState({});
+  const [isEditingOrg, setIsEditingOrg] = useState(false);
   const [editingUnitId, setEditingUnitId] = useState(null);
-  const [editingUnitData, setEditingUnitData] = useState({});
+  const [isEditingUnit, setIsEditingUnit] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
-  const [editingUserData, setEditingUserData] = useState({});
+  const [isEditingAdmin, setIsEditingAdmin] = useState(false);
+  const [isEditingUser, setIsEditingUser] = useState(false);
+  const [isEditingUnitAdmin, setIsEditingUnitAdmin] = useState(false);
   const [editingDeptId, setEditingDeptId] = useState(null);
-  const [editingDeptData, setEditingDeptData] = useState({});
+  const [isEditingDept, setIsEditingDept] = useState(false);
 
   // Form states
   const [newOrganization, setNewOrganization] = useState({
@@ -229,7 +230,8 @@ const UserManagement = () => {
 
   const [newUnitAdmin, setNewUnitAdmin] = useState({
     unit: "",
-    name: "",
+    first_name: "",
+    last_name: "",
     email: "",
     phone: "",
     can_manage_assets: false,
@@ -243,7 +245,7 @@ const UserManagement = () => {
     phone: "",
     role: "",
     departments: [],
-    organization: "",
+    organization: "user",
   });
 
   const [newDepartment, setNewDepartment] = useState({
@@ -279,33 +281,110 @@ const UserManagement = () => {
   const {
     isOpen: isOrgOpen,
     onOpen: onOrgOpen,
-    onClose: onOrgClose,
+    onClose: onOrgCloseOriginal,
   } = useDisclosure();
+
+  const onOrgClose = () => {
+    onOrgCloseOriginal();
+    setIsEditingOrg(false);
+    setEditingOrgId(null);
+    setNewOrganization({
+      name: "",
+      status: "inactive",
+    });
+  };
   const {
     isOpen: isAdminOpen,
     onOpen: onAdminOpen,
-    onClose: onAdminClose,
+    onClose: onAdminCloseOriginal,
   } = useDisclosure();
+
+  const onAdminClose = () => {
+    onAdminCloseOriginal();
+    setIsEditingAdmin(false);
+    setEditingAdminId(null);
+    setNewAdmin({
+      organization: "",
+      name: "",
+      email: "",
+      first_name: "",
+      last_name: "",
+      role: "org_admin",
+      can_manage_assets: false,
+      can_manage_users: false,
+    });
+  };
   const {
     isOpen: isUnitOpen,
     onOpen: onUnitOpen,
-    onClose: onUnitClose,
+    onClose: onUnitCloseOriginal,
   } = useDisclosure();
+
+  const onUnitClose = () => {
+    onUnitCloseOriginal();
+    setIsEditingUnit(false);
+    setEditingUnitId(null);
+    setNewUnit({
+      organization: userData?.organization?.id || "",
+      name: "",
+    });
+  };
   const {
     isOpen: isUnitAdminOpen,
     onOpen: onUnitAdminOpen,
-    onClose: onUnitAdminClose,
+    onClose: onUnitAdminCloseOriginal,
   } = useDisclosure();
+
+  const onUnitAdminClose = () => {
+    onUnitAdminCloseOriginal();
+    setIsEditingUnitAdmin(false);
+    setEditingAdminId(null);
+    setNewUnitAdmin({
+      unit: "",
+      first_name: "",
+      last_name: "",
+      email: "",
+      phone: "",
+      can_manage_assets: false,
+      can_manage_users: false,
+    });
+  };
   const {
     isOpen: isUserOpen,
     onOpen: onUserOpen,
-    onClose: onUserClose,
+    onClose: onUserCloseOriginal,
   } = useDisclosure();
+
+  const onUserClose = () => {
+    onUserCloseOriginal();
+    setIsEditingUser(false);
+    setEditingUserId(null);
+    setNewUser({
+      first_name: "",
+      last_name: "",
+      email: "",
+      phone: "",
+      role: "",
+      departments: [],
+      unit: userData?.unit?.id || "",
+      organization: userData?.organization?.id || "",
+    });
+  };
   const {
     isOpen: isDepartmentOpen,
     onOpen: onDepartmentOpen,
-    onClose: onDepartmentClose,
+    onClose: onDepartmentCloseOriginal,
   } = useDisclosure();
+
+  const onDepartmentClose = () => {
+    onDepartmentCloseOriginal();
+    setIsEditingDept(false);
+    setEditingDeptId(null);
+    setNewDepartment({
+      name: "",
+      unit: userRole === "unit_admin" ? userData?.unit?.id || "" : "",
+    });
+  };
 
   // Get current user role
   useEffect(() => {
@@ -337,10 +416,18 @@ const UserManagement = () => {
         ...prev,
         organization: userData.organization.id,
       }));
+      setNewUser((prev) => ({
+        ...prev,
+        organization: userData.organization.id,
+      }));
     }
     // Set default unit for newDepartment if user is unit_admin
     if (userRole === "unit_admin" && userData?.unit?.id) {
       setNewDepartment((prev) => ({
+        ...prev,
+        unit: userData.unit.id,
+      }));
+      setNewUser((prev) => ({
         ...prev,
         unit: userData.unit.id,
       }));
@@ -407,6 +494,7 @@ const UserManagement = () => {
         updateStats("activeUsers", activeUsers);
       } else if (userRole === "unit_admin") {
         const unitData = data.unit || {};
+        setUnits([unitData]);
         const unitDepts = (unitData.departments || []).map((d) => ({
           ...d,
           unit_id: unitData.id,
@@ -446,6 +534,12 @@ const UserManagement = () => {
       });
     }
   };
+  console.log(userData)
+  const selectedUnitDepartments =
+  units.find(
+    (u) => u.id === Number(newUser.unit)
+  )?.departments || [];
+
 
   const updateStats = (key, value) => {
     setStats((prev) => ({ ...prev, [key]: value }));
@@ -472,18 +566,27 @@ const UserManagement = () => {
         name: newOrganization.name.trim(),
       };
 
-      await api.post("/api/organizations/", organizationData);
-      toast({
-        title: "Organization added successfully",
-        status: "success",
-        duration: 3000,
-      });
+      if (isEditingOrg) {
+        await api.patch(`/api/organizations/${editingOrgId}/`, organizationData);
+        toast({
+          title: "Organization updated successfully",
+          status: "success",
+          duration: 3000,
+        });
+      } else {
+        await api.post("/api/organizations/", organizationData);
+        toast({
+          title: "Organization added successfully",
+          status: "success",
+          duration: 3000,
+        });
+      }
       await fetchUserManagementData();
       onOrgClose();
       setNewOrganization({ name: "", status: "inactive" });
     } catch (error) {
       toast({
-        title: "Error adding organization",
+        title: isEditingOrg ? "Error updating organization" : "Error adding organization",
         description: error.response?.data?.message || error.message,
         status: "error",
         duration: 5000,
@@ -543,25 +646,26 @@ const UserManagement = () => {
         can_manage_users: newAdmin.can_manage_users,
       };
 
-      await api.post("/api/users/", adminData);
-      toast({
-        title: "Admin added successfully",
-        status: "success",
-        duration: 3000,
-      });
+      if (isEditingAdmin) {
+        await api.patch(`/api/users/${editingAdminId}/`, adminData);
+        toast({
+          title: "Admin updated successfully",
+          status: "success",
+          duration: 3000,
+        });
+      } else {
+        await api.post("/api/users/", adminData);
+        toast({
+          title: "Admin added successfully",
+          status: "success",
+          duration: 3000,
+        });
+      }
       await fetchUserManagementData();
       onAdminClose();
-      setNewAdmin({
-        organization: "",
-        name: "",
-        email: "",
-        first_name: "",
-        last_name: "",
-        role: "org_admin",
-      });
     } catch (error) {
       toast({
-        title: "Error adding admin",
+        title: isEditingAdmin ? "Error updating admin" : "Error adding admin",
         description: error.response?.data?.message || error.message,
         status: "error",
         duration: 5000,
@@ -586,18 +690,27 @@ const UserManagement = () => {
         name: newUnit.name.trim(),
       };
 
-      await api.post("/api/units/", unitData);
-      toast({
-        title: "Unit added successfully",
-        status: "success",
-        duration: 3000,
-      });
+      if (isEditingUnit) {
+        await api.patch(`/api/units/${editingUnitId}/`, unitData);
+        toast({
+          title: "Unit updated successfully",
+          status: "success",
+          duration: 3000,
+        });
+      } else {
+        await api.post("/api/units/", unitData);
+        toast({
+          title: "Unit added successfully",
+          status: "success",
+          duration: 3000,
+        });
+      }
       await fetchUserManagementData();
       onUnitClose();
-      setNewUnit({ organization: userData.organization.id, name: "" });
+      setNewUnit({ organization: userData?.organization?.id || "", name: "" });
     } catch (error) {
       toast({
-        title: "Error adding unit",
+        title: isEditingUnit ? "Error updating unit" : "Error adding unit",
         description: error.response?.data?.message || error.message,
         status: "error",
         duration: 5000,
@@ -657,27 +770,27 @@ const UserManagement = () => {
         organization: userData.organization.id,
       };
 
-      await api.post("/api/users/", unitAdminData);
-      toast({
-        title: "Unit admin added successfully",
-        status: "success",
-        duration: 3000,
-      });
+      if (isEditingUnitAdmin) {
+        await api.patch(`/api/users/${editingAdminId}/`, unitAdminData);
+        toast({
+          title: "Unit admin updated successfully",
+          status: "success",
+          duration: 3000,
+        });
+      } else {
+        await api.post("/api/users/", unitAdminData);
+        toast({
+          title: "Unit admin added successfully",
+          status: "success",
+          duration: 3000,
+        });
+      }
+
       await fetchUserManagementData();
       onUnitAdminClose();
-      setNewUnitAdmin({
-        unit: "",
-        name: "",
-        email: "",
-        phone: "",
-        can_manage_assets: false,
-        can_manage_users: false,
-        role: "unit_admin",
-        organization: userData.organization.id,
-      });
     } catch (error) {
       toast({
-        title: "Error adding unit admin",
+        title: isEditingUnitAdmin ? "Error updating unit admin" : "Error adding unit admin",
         description: error.response?.data?.message || error.message,
         status: "error",
         duration: 5000,
@@ -691,27 +804,28 @@ const UserManagement = () => {
         ...newUser,
         departments: newUser.departments,
       };
-      await api.post("/api/users/", userPayload);
-      toast({
-        title: "User added successfully",
-        status: "success",
-        duration: 3000,
-      });
+
+      if (isEditingUser) {
+        await api.patch(`/api/users/${editingUserId}/`, userPayload);
+        toast({
+          title: "User updated successfully",
+          status: "success",
+          duration: 3000,
+        });
+      } else {
+        await api.post("/api/users/", userPayload);
+        toast({
+          title: "User added successfully",
+          status: "success",
+          duration: 3000,
+        });
+      }
+
       await fetchUserManagementData();
       onUserClose();
-      setNewUser({
-        first_name: "",
-        last_name: "",
-        email: "",
-        phone: "",
-        role: "",
-        departments: [],
-        unit: userData?.unit?.id || "",
-        organization: userData?.organization?.id || "",
-      });
     } catch (error) {
       toast({
-        title: "Error adding user",
+        title: isEditingUser ? "Error updating user" : "Error adding user",
         description: error.response?.data?.message || error.message,
         status: "error",
         duration: 5000,
@@ -771,12 +885,21 @@ const UserManagement = () => {
         unit: newDepartment.unit,
       };
 
-      await api.post("/api/departments/", departmentData);
-      toast({
-        title: "Department added successfully",
-        status: "success",
-        duration: 3000,
-      });
+      if (isEditingDept) {
+        await api.patch(`/api/departments/${editingDeptId}/`, departmentData);
+        toast({
+          title: "Department updated successfully",
+          status: "success",
+          duration: 3000,
+        });
+      } else {
+        await api.post("/api/departments/", departmentData);
+        toast({
+          title: "Department added successfully",
+          status: "success",
+          duration: 3000,
+        });
+      }
       await fetchUserManagementData();
       onDepartmentClose();
       setNewDepartment({
@@ -785,7 +908,7 @@ const UserManagement = () => {
       });
     } catch (error) {
       toast({
-        title: "Error adding department",
+        title: isEditingDept ? "Error updating department" : "Error adding department",
         description: error.response?.data?.message || error.message,
         status: "error",
         duration: 5000,
@@ -894,181 +1017,80 @@ const UserManagement = () => {
   };
 
   const handleEditAdmin = (admin) => {
+    setIsEditingAdmin(true);
     setEditingAdminId(admin.id);
-    setEditingAdminData({
-      first_name: admin.first_name,
-      last_name: admin.last_name,
-      email: admin.email,
+    setNewAdmin({
+      organization: admin.organization?.id || "",
+      name: admin.name || "",
+      email: admin.email || "",
+      first_name: admin.first_name || "",
+      last_name: admin.last_name || "",
+      role: admin.role || "org_admin",
+      can_manage_assets: admin.can_manage_assets || false,
+      can_manage_users: admin.can_manage_users || false,
     });
+    onAdminOpen();
   };
 
-  const handleSaveAdmin = async () => {
-    try {
-      if (!editingAdminData.first_name.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "First name is required",
-          status: "warning",
-          duration: 3000,
-        });
-        return;
-      }
-
-      if (!editingAdminData.last_name.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "Last name is required",
-          status: "warning",
-          duration: 3000,
-        });
-        return;
-      }
-
-      if (!editingAdminData.email.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "Email is required",
-          status: "warning",
-          duration: 3000,
-        });
-        return;
-      }
-
-      const updateData = {
-        first_name: editingAdminData.first_name.trim(),
-        last_name: editingAdminData.last_name.trim(),
-        email: editingAdminData.email.trim(),
-      };
-
-      await api.patch(
-        `/api/users/${editingAdminId}/`,
-        updateData,
-      );
-
-      toast({
-        title: "Admin updated successfully",
-        status: "success",
-        duration: 3000,
-      });
-
-      await fetchUserManagementData();
-      setEditingAdminId(null);
-      setEditingAdminData({});
-    } catch (error) {
-      toast({
-        title: "Error updating admin",
-        description: error.response?.data?.message || error.message,
-        status: "error",
-        duration: 5000,
-      });
-    }
+  const handleEditUnitAdmin = (admin) => {
+    setIsEditingUnitAdmin(true);
+    setEditingAdminId(admin.id);
+    setNewUnitAdmin({
+      unit: admin.unit?.id || "",
+      first_name: admin.first_name || "",
+      last_name: admin.last_name || "",
+      email: admin.email || "",
+      phone: admin.phone || "",
+      can_manage_assets: admin.can_manage_assets || false,
+      can_manage_users: admin.can_manage_users || false,
+    });
+    onUnitAdminOpen();
   };
 
   const handleEditOrg = (org) => {
+    setIsEditingOrg(true);
     setEditingOrgId(org.id);
-    setEditingOrgData({ name: org.name });
-  };
-
-  const handleSaveOrg = async () => {
-    try {
-      await api.patch(`/api/organizations/${editingOrgId}/`, {
-        name: editingOrgData.name,
-      });
-      toast({ title: "Organization updated", status: "success" });
-      await fetchUserManagementData();
-      setEditingOrgId(null);
-    } catch (error) {
-      toast({
-        title: "Error updating organization",
-        description: error.message,
-        status: "error",
-      });
-    }
+    setNewOrganization({
+      name: org.name,
+      status: org.status || "inactive",
+    });
+    onOrgOpen();
   };
 
   const handleEditUnit = (unit) => {
+    setIsEditingUnit(true);
     setEditingUnitId(unit.id);
-    setEditingUnitData({ name: unit.name });
-  };
-
-  const handleSaveUnit = async () => {
-    try {
-      await api.patch(`/api/units/${editingUnitId}/`, {
-        name: editingUnitData.name,
-      });
-      toast({ title: "Unit updated", status: "success" });
-      await fetchUserManagementData();
-      setEditingUnitId(null);
-    } catch (error) {
-      toast({
-        title: "Error updating unit",
-        description: error.message,
-        status: "error",
-      });
-    }
+    setNewUnit({
+      organization: unit.organization?.id || unit.organization || "",
+      name: unit.name,
+    });
+    onUnitOpen();
   };
 
   const handleEditUser = (user) => {
+    setIsEditingUser(true);
     setEditingUserId(user.id);
-    setEditingUserData({
-      first_name: user.first_name,
-      last_name: user.last_name,
-      email: user.email,
+    setNewUser({
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      email: user.email || "",
+      phone: user.phone || "",
+      role: user.role || "",
+      unit: user.unit_id || user.unit?.id || "",
+      departments: user.departments ? user.departments.map(d => typeof d === 'object' ? d.id : d) : [],
+      organization: user.organization_id || user.organization?.id || userData?.organization?.id || "",
     });
-  };
-
-  const handleSaveUser = async () => {
-    try {
-      await api.patch(`/api/users/${editingUserId}/`, {
-        first_name: editingUserData.first_name,
-        last_name: editingUserData.last_name,
-        email: editingUserData.email,
-      });
-      toast({ title: "User updated", status: "success" });
-      await fetchUserManagementData();
-      setEditingUserId(null);
-    } catch (error) {
-      toast({
-        title: "Error updating user",
-        description: error.message,
-        status: "error",
-      });
-    }
+    onUserOpen();
   };
 
   const handleEditDept = (dept) => {
+    setIsEditingDept(true);
     setEditingDeptId(dept.id);
-    setEditingDeptData({ name: dept.name });
-  };
-
-  const handleSaveDept = async () => {
-    try {
-      await api.patch(`/api/departments/${editingDeptId}/`, {
-        name: editingDeptData.name,
-      });
-      toast({ title: "Department updated", status: "success" });
-      await fetchUserManagementData();
-      setEditingDeptId(null);
-    } catch (error) {
-      toast({
-        title: "Error updating department",
-        description: error.message,
-        status: "error",
-      });
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingAdminId(null);
-    setEditingAdminData({});
-    setEditingOrgId(null);
-    setEditingOrgData({});
-    setEditingUnitId(null);
-    setEditingUnitData({});
-    setEditingUserId(null);
-    setEditingUserData({});
-    setEditingDeptId(null);
-    setEditingDeptData({});
+    setNewDepartment({
+      name: dept.name,
+      unit: dept.unit_id || dept.unit || "",
+    });
+    onDepartmentOpen();
   };
 
   const handleToggleStatus = async (type, id, currentStatus) => {
@@ -1409,22 +1431,9 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                               <CardBody>
                                 <VStack align="stretch" spacing={3}>
                                   <Flex justify="space-between" align="center">
-                                    {editingOrgId === org.id ? (
-                                      <Input
-                                        size="sm"
-                                        value={editingOrgData.name}
-                                        onChange={(e) =>
-                                          setEditingOrgData({
-                                            ...editingOrgData,
-                                            name: e.target.value,
-                                          })
-                                        }
-                                      />
-                                    ) : (
-                                      <Text fontWeight="bold" fontSize="lg">
-                                        {org.name}
-                                      </Text>
-                                    )}
+                                    <Text fontWeight="bold" fontSize="lg">
+                                      {org.name}
+                                    </Text>
                                     <Badge
                                       colorScheme={
                                         org.status === "active"
@@ -1468,43 +1477,23 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                   <Divider />
 
                                   <Flex justify="flex-end" gap={2}>
-                                    {editingOrgId === org.id ? (
-                                      <>
-                                        <IconButton
-                                          aria-label="Save organization"
-                                          icon={<FiCheck />}
-                                          size="sm"
-                                          colorScheme="green"
-                                          onClick={handleSaveOrg}
-                                        />
-                                        <IconButton
-                                          aria-label="Cancel editing"
-                                          icon={<FiX />}
-                                          size="sm"
-                                          onClick={handleCancelEdit}
-                                        />
-                                      </>
-                                    ) : (
-                                      <>
-                                        <IconButton
-                                          aria-label="Edit organization"
-                                          icon={<FiEdit2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => handleEditOrg(org)}
-                                        />
-                                        <IconButton
-                                          aria-label="Delete organization"
-                                          icon={<FiTrash2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          colorScheme="red"
-                                          onClick={() =>
-                                            handleDeleteOrganization(org.id)
-                                          }
-                                        />
-                                      </>
-                                    )}
+                                    <IconButton
+                                      aria-label="Edit organization"
+                                      icon={<FiEdit2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleEditOrg(org)}
+                                    />
+                                    <IconButton
+                                      aria-label="Delete organization"
+                                      icon={<FiTrash2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      colorScheme="red"
+                                      onClick={() =>
+                                        handleDeleteOrganization(org.id)
+                                      }
+                                    />
                                   </Flex>
                                 </VStack>
                               </CardBody>
@@ -1529,20 +1518,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                             {filteredOrganizations.map((org) => (
                               <Tr key={org.id}>
                                 <Td fontWeight="medium">
-                                  {editingOrgId === org.id ? (
-                                    <Input
-                                      size="sm"
-                                      value={editingOrgData.name}
-                                      onChange={(e) =>
-                                        setEditingOrgData({
-                                          ...editingOrgData,
-                                          name: e.target.value,
-                                        })
-                                      }
-                                    />
-                                  ) : (
-                                    org.name
-                                  )}
+                                  {org.name}
                                 </Td>
                                 <Td>
                                   <Flex align="center" gap={2}>
@@ -1576,43 +1552,23 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                 </Td>
                                 <Td>
                                   <HStack spacing={2}>
-                                    {editingOrgId === org.id ? (
-                                      <>
-                                        <IconButton
-                                          aria-label="Save organization"
-                                          icon={<FiCheck />}
-                                          size="sm"
-                                          colorScheme="green"
-                                          onClick={handleSaveOrg}
-                                        />
-                                        <IconButton
-                                          aria-label="Cancel editing"
-                                          icon={<FiX />}
-                                          size="sm"
-                                          onClick={handleCancelEdit}
-                                        />
-                                      </>
-                                    ) : (
-                                      <>
-                                        <IconButton
-                                          aria-label="Edit organization"
-                                          icon={<FiEdit2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => handleEditOrg(org)}
-                                        />
-                                        <IconButton
-                                          aria-label="Delete organization"
-                                          icon={<FiTrash2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          colorScheme="red"
-                                          onClick={() =>
-                                            handleDeleteOrganization(org.id)
-                                          }
-                                        />
-                                      </>
-                                    )}
+                                    <IconButton
+                                      aria-label="Edit organization"
+                                      icon={<FiEdit2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleEditOrg(org)}
+                                    />
+                                    <IconButton
+                                      aria-label="Delete organization"
+                                      icon={<FiTrash2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      colorScheme="red"
+                                      onClick={() =>
+                                        handleDeleteOrganization(org.id)
+                                      }
+                                    />
                                     <Menu>
                                       <MenuButton
                                         as={IconButton}
@@ -1692,45 +1648,16 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                         name={`${admin.first_name} ${admin.last_name}`}
                                       />
                                       <Box>
-                                        {editingAdminId === admin.id ? (
-                                          <VStack spacing={2} align="start">
-                                            <Input
-                                              size="xs"
-                                              value={editingAdminData.first_name}
-                                              onChange={(e) =>
-                                                setEditingAdminData({
-                                                  ...editingAdminData,
-                                                  first_name: e.target.value,
-                                                })
-                                              }
-                                              placeholder="First name"
-                                            />
-                                            <Input
-                                              size="xs"
-                                              value={editingAdminData.last_name}
-                                              onChange={(e) =>
-                                                setEditingAdminData({
-                                                  ...editingAdminData,
-                                                  last_name: e.target.value,
-                                                })
-                                              }
-                                              placeholder="Last name"
-                                            />
-                                          </VStack>
-                                        ) : (
-                                          <>
-                                            <Text fontWeight="bold">
-                                              {admin.first_name}{" "}
-                                              {admin.last_name}
-                                            </Text>
-                                            <Text
-                                              fontSize="xs"
-                                              color="gray.500"
-                                            >
-                                              {admin.organization?.name}
-                                            </Text>
-                                          </>
-                                        )}
+                                        <Text fontWeight="bold">
+                                          {admin.first_name}{" "}
+                                          {admin.last_name}
+                                        </Text>
+                                        <Text
+                                          fontSize="xs"
+                                          color="gray.500"
+                                        >
+                                          {admin.organization?.name}
+                                        </Text>
                                       </Box>
                                     </HStack>
                                     <Badge
@@ -1744,21 +1671,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
 
                                   <HStack>
                                     <FiMail size={14} />
-                                    {editingAdminId === admin.id ? (
-                                      <Input
-                                        size="xs"
-                                        value={editingAdminData.email}
-                                        onChange={(e) =>
-                                          setEditingAdminData({
-                                            ...editingAdminData,
-                                            email: e.target.value,
-                                          })
-                                        }
-                                        placeholder="Email"
-                                      />
-                                    ) : (
-                                      <Text fontSize="sm">{admin.email}</Text>
-                                    )}
+                                    <Text fontSize="sm">{admin.email}</Text>
                                   </HStack>
 
                                   <Flex justify="space-between" align="center">
@@ -1781,43 +1694,23 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                   <Divider />
 
                                   <Flex justify="flex-end" gap={2}>
-                                    {editingAdminId === admin.id ? (
-                                      <>
-                                        <IconButton
-                                          aria-label="Save admin"
-                                          icon={<FiCheck />}
-                                          size="sm"
-                                          colorScheme="green"
-                                          onClick={handleSaveAdmin}
-                                        />
-                                        <IconButton
-                                          aria-label="Cancel editing"
-                                          icon={<FiX />}
-                                          size="sm"
-                                          onClick={handleCancelEdit}
-                                        />
-                                      </>
-                                    ) : (
-                                      <>
-                                        <IconButton
-                                          aria-label="Edit admin"
-                                          icon={<FiEdit2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => handleEditAdmin(admin)}
-                                        />
-                                        <IconButton
-                                          aria-label="Delete admin"
-                                          icon={<FiTrash2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          colorScheme="red"
-                                          onClick={() =>
-                                            handleDeleteAdmin(admin.id)
-                                          }
-                                        />
-                                      </>
-                                    )}
+                                    <IconButton
+                                      aria-label="Edit admin"
+                                      icon={<FiEdit2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleEditAdmin(admin)}
+                                    />
+                                    <IconButton
+                                      aria-label="Delete admin"
+                                      icon={<FiTrash2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      colorScheme="red"
+                                      onClick={() =>
+                                        handleDeleteAdmin(admin.id)
+                                      }
+                                    />
                                   </Flex>
                                 </VStack>
                               </CardBody>
@@ -1843,54 +1736,13 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                             {filteredAdmins.map((admin) => (
                               <Tr key={admin.id}>
                                 <Td fontWeight="medium">
-                                  {editingAdminId === admin.id ? (
-                                    <HStack spacing={2}>
-                                      <Input
-                                        size="sm"
-                                        value={editingAdminData.first_name}
-                                        onChange={(e) =>
-                                          setEditingAdminData({
-                                            ...editingAdminData,
-                                            first_name: e.target.value,
-                                          })
-                                        }
-                                        placeholder="First name"
-                                      />
-                                      <Input
-                                        size="sm"
-                                        value={editingAdminData.last_name}
-                                        onChange={(e) =>
-                                          setEditingAdminData({
-                                            ...editingAdminData,
-                                            last_name: e.target.value,
-                                          })
-                                        }
-                                        placeholder="Last name"
-                                      />
-                                    </HStack>
-                                  ) : (
-                                    `${admin.first_name} ${admin.last_name}`
-                                  )}
+                                  {`${admin.first_name} ${admin.last_name}`}
                                 </Td>
                                 <Td>
-                                  {editingAdminId === admin.id ? (
-                                    <Input
-                                      size="sm"
-                                      value={editingAdminData.email}
-                                      onChange={(e) =>
-                                        setEditingAdminData({
-                                          ...editingAdminData,
-                                          email: e.target.value,
-                                        })
-                                      }
-                                      placeholder="Email"
-                                    />
-                                  ) : (
-                                    <HStack>
-                                      <FiMail color="red" size={14} />
-                                      <Text fontSize="sm">{admin.email}</Text>
-                                    </HStack>
-                                  )}
+                                  <HStack>
+                                    <FiMail color="red" size={14} />
+                                    <Text fontSize="sm">{admin.email}</Text>
+                                  </HStack>
                                 </Td>
                                 <Td fontWeight={"semibold"}>
                                   {admin.organization.name}
@@ -1918,44 +1770,25 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                   </Flex>
                                 </Td>
                                 <Td>
-                                  {editingAdminId === admin.id ? (
-                                    <HStack spacing={2}>
-                                      <Button
-                                        size="sm"
-                                        colorScheme="green"
-                                        onClick={handleSaveAdmin}
-                                      >
-                                        Save
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={handleCancelEdit}
-                                      >
-                                        Cancel
-                                      </Button>
-                                    </HStack>
-                                  ) : (
-                                    <HStack spacing={2}>
-                                      <IconButton
-                                        aria-label="Edit admin"
-                                        icon={<FiEdit2 />}
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => handleEditAdmin(admin)}
-                                      />
-                                      <IconButton
-                                        aria-label="Delete admin"
-                                        icon={<FiTrash2 />}
-                                        size="sm"
-                                        variant="ghost"
-                                        colorScheme="red"
-                                        onClick={() =>
-                                          handleDeleteAdmin(admin.id)
-                                        }
-                                      />
-                                    </HStack>
-                                  )}
+                                  <HStack spacing={2}>
+                                    <IconButton
+                                      aria-label="Edit admin"
+                                      icon={<FiEdit2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleEditAdmin(admin)}
+                                    />
+                                    <IconButton
+                                      aria-label="Delete admin"
+                                      icon={<FiTrash2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      colorScheme="red"
+                                      onClick={() =>
+                                        handleDeleteAdmin(admin.id)
+                                      }
+                                    />
+                                  </HStack>
                                 </Td>
                               </Tr>
                             ))}
@@ -2009,23 +1842,9 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                 mb={2}
                               >
                                 <Box>
-                                  {editingUnitId === unit.id ? (
-                                    <Input
-                                      size="sm"
-                                      value={editingUnitData.name}
-                                      onChange={(e) =>
-                                        setEditingUnitData({
-                                          ...editingUnitData,
-                                          name: e.target.value,
-                                        })
-                                      }
-                                      mb={2}
-                                    />
-                                  ) : (
-                                    <Heading size="sm" mb={1}>
-                                      {unit.name}
-                                    </Heading>
-                                  )}
+                                  <Heading size="sm" mb={1}>
+                                    {unit.name}
+                                  </Heading>
                                   <Tag size="sm" mb={2}>
                                     {unit.code}
                                   </Tag>
@@ -2070,60 +1889,40 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                   </HStack>
                                 </VStack>
                                 <HStack spacing={2}>
-                                  {editingUnitId === unit.id ? (
-                                    <>
-                                      <IconButton
-                                        aria-label="Save unit"
-                                        icon={<FiCheck />}
-                                        size="sm"
-                                        colorScheme="green"
-                                        onClick={handleSaveUnit}
-                                      />
-                                      <IconButton
-                                        aria-label="Cancel editing"
-                                        icon={<FiX />}
-                                        size="sm"
-                                        onClick={handleCancelEdit}
-                                      />
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Button
-                                        aria-label="Add department"
-                                        leftIcon={<FiPlus />}
-                                        size="sm"
-                                        variant="outline"
-                                        colorScheme="teal"
-                                        onClick={() => {
-                                          setNewDepartment({
-                                            name: "",
-                                            unit: unit.id,
-                                          });
-                                          onDepartmentOpen();
-                                        }}
-                                      >
-                                        Add Dept
-                                      </Button>
-                                      <IconButton
-                                        aria-label="Edit unit"
-                                        icon={<FiEdit2 />}
-                                        size="sm"
-                                        variant="outline"
-                                        colorScheme="blue"
-                                        onClick={() => handleEditUnit(unit)}
-                                      />
-                                      <IconButton
-                                        aria-label="Delete unit"
-                                        icon={<FiTrash2 />}
-                                        size="sm"
-                                        variant="outline"
-                                        colorScheme="red"
-                                        onClick={() =>
-                                          handleDeleteUnit(unit.id)
-                                        }
-                                      />
-                                    </>
-                                  )}
+                                  <Button
+                                    aria-label="Add department"
+                                    leftIcon={<FiPlus />}
+                                    size="sm"
+                                    variant="outline"
+                                    colorScheme="teal"
+                                    onClick={() => {
+                                      setNewDepartment({
+                                        name: "",
+                                        unit: unit.id,
+                                      });
+                                      onDepartmentOpen();
+                                    }}
+                                  >
+                                    Add Dept
+                                  </Button>
+                                  <IconButton
+                                    aria-label="Edit unit"
+                                    icon={<FiEdit2 />}
+                                    size="sm"
+                                    variant="outline"
+                                    colorScheme="blue"
+                                    onClick={() => handleEditUnit(unit)}
+                                  />
+                                  <IconButton
+                                    aria-label="Delete unit"
+                                    icon={<FiTrash2 />}
+                                    size="sm"
+                                    variant="outline"
+                                    colorScheme="red"
+                                    onClick={() =>
+                                      handleDeleteUnit(unit.id)
+                                    }
+                                  />
                                 </HStack>
                               </HStack>
                             </CardBody>
@@ -2193,45 +1992,16 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                         bg="purple.500"
                                       />
                                       <Box>
-                                        {editingAdminId === unitAdmin.id ? (
-                                          <VStack spacing={2} align="start">
-                                            <Input
-                                              size="xs"
-                                              value={editingAdminData.first_name}
-                                              onChange={(e) =>
-                                                setEditingAdminData({
-                                                  ...editingAdminData,
-                                                  first_name: e.target.value,
-                                                })
-                                              }
-                                              placeholder="First name"
-                                            />
-                                            <Input
-                                              size="xs"
-                                              value={editingAdminData.last_name}
-                                              onChange={(e) =>
-                                                setEditingAdminData({
-                                                  ...editingAdminData,
-                                                  last_name: e.target.value,
-                                                })
-                                              }
-                                              placeholder="Last name"
-                                            />
-                                          </VStack>
-                                        ) : (
-                                          <>
-                                            <Text fontWeight="bold">
-                                              {unitAdmin.first_name}{" "}
-                                              {unitAdmin.last_name}
-                                            </Text>
-                                            <Text
-                                              fontSize="xs"
-                                              color="gray.500"
-                                            >
-                                              {unitAdmin.unit?.name}
-                                            </Text>
-                                          </>
-                                        )}
+                                        <Text fontWeight="bold">
+                                          {unitAdmin.first_name}{" "}
+                                          {unitAdmin.last_name}
+                                        </Text>
+                                        <Text
+                                          fontSize="xs"
+                                          color="gray.500"
+                                        >
+                                          {unitAdmin.unit?.name}
+                                        </Text>
                                       </Box>
                                     </HStack>
                                     <Flex align="center" gap={2}>
@@ -2261,23 +2031,9 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
 
                                   <HStack>
                                     <FiMail size={14} />
-                                    {editingAdminId === unitAdmin.id ? (
-                                      <Input
-                                        size="xs"
-                                        value={editingAdminData.email}
-                                        onChange={(e) =>
-                                          setEditingAdminData({
-                                            ...editingAdminData,
-                                            email: e.target.value,
-                                          })
-                                        }
-                                        placeholder="Email"
-                                      />
-                                    ) : (
-                                      <Text fontSize="sm">
-                                        {unitAdmin.email}
-                                      </Text>
-                                    )}
+                                    <Text fontSize="sm">
+                                      {unitAdmin.email}
+                                    </Text>
                                   </HStack>
 
                                   <Flex justify="space-between">
@@ -2296,52 +2052,32 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                   <Divider />
 
                                   <Flex justify="flex-end" gap={2}>
-                                    {editingAdminId === unitAdmin.id ? (
-                                      <>
-                                        <IconButton
-                                          aria-label="Save"
-                                          icon={<FiCheck />}
-                                          size="sm"
-                                          colorScheme="green"
-                                          onClick={handleSaveAdmin}
-                                        />
-                                        <IconButton
-                                          aria-label="Cancel"
-                                          icon={<FiX />}
-                                          size="sm"
-                                          onClick={handleCancelEdit}
-                                        />
-                                      </>
-                                    ) : (
-                                      <>
-                                        <IconButton
-                                          aria-label="Edit unit admin"
-                                          icon={<FiEdit2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() =>
-                                            handleEditAdmin(unitAdmin)
-                                          }
-                                        />
-                                        <IconButton
-                                          aria-label="Delete unit admin"
-                                          icon={<FiTrash2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          colorScheme="red"
-                                          onClick={() =>
-                                            handleDeleteUser(unitAdmin.id)
-                                          }
-                                        />
-                                        <IconButton
-                                          aria-label="Reset password"
-                                          icon={<FiKey />}
-                                          size="sm"
-                                          variant="ghost"
-                                          colorScheme="orange"
-                                        />
-                                      </>
-                                    )}
+                                    <IconButton
+                                      aria-label="Edit unit admin"
+                                      icon={<FiEdit2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() =>
+                                        handleEditUnitAdmin(unitAdmin)
+                                      }
+                                    />
+                                    <IconButton
+                                      aria-label="Delete unit admin"
+                                      icon={<FiTrash2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      colorScheme="red"
+                                      onClick={() =>
+                                        handleDeleteUser(unitAdmin.id)
+                                      }
+                                    />
+                                    <IconButton
+                                      aria-label="Reset password"
+                                      icon={<FiKey />}
+                                      size="sm"
+                                      variant="ghost"
+                                      colorScheme="orange"
+                                    />
                                   </Flex>
                                 </VStack>
                               </CardBody>
@@ -2374,54 +2110,17 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                       name={unitAdmin.name}
                                       bg="purple.500"
                                     />
-                                    {editingAdminId === unitAdmin.id ? (
-                                      <HStack spacing={2}>
-                                        <Input
-                                          size="sm"
-                                          value={editingAdminData.first_name}
-                                          onChange={(e) =>
-                                            setEditingAdminData({
-                                              ...editingAdminData,
-                                              first_name: e.target.value,
-                                            })
-                                          }
-                                        />
-                                        <Input
-                                          size="sm"
-                                          value={editingAdminData.last_name}
-                                          onChange={(e) =>
-                                            setEditingAdminData({
-                                              ...editingAdminData,
-                                              last_name: e.target.value,
-                                            })
-                                          }
-                                        />
-                                      </HStack>
-                                    ) : (
-                                      <Text fontWeight="medium">
-                                        {unitAdmin.first_name}{" "}
-                                        {unitAdmin.last_name}
-                                      </Text>
-                                    )}
+                                    <Text fontWeight="medium">
+                                      {unitAdmin.first_name}{" "}
+                                      {unitAdmin.last_name}
+                                    </Text>
                                   </HStack>
                                 </Td>
                                 <Td>
-                                  {editingAdminId === unitAdmin.id ? (
-                                    <Input
-                                      size="sm"
-                                      value={editingAdminData.email}
-                                      onChange={(e) =>
-                                        setEditingAdminData({
-                                          ...editingAdminData,
-                                          email: e.target.value,
-                                        })
-                                      }
-                                    />
-                                  ) : (
-                                    unitAdmin.email
-                                  )}
+                                  {unitAdmin.email}
                                 </Td>
-                                <Td>{unitAdmin.unit.name}</Td>
+                                <Td>{unitAdmin.unit && unitAdmin.unit.name}</Td>
+
                                 <Td>
                                   <Flex align="center" gap={2}>
                                     <Badge
@@ -2455,52 +2154,34 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                     : "Never"}
                                 </Td>
                                 <Td>
-                                  {editingAdminId === unitAdmin.id ? (
-                                    <HStack spacing={2}>
-                                      <IconButton
-                                        aria-label="Save"
-                                        icon={<FiCheck />}
-                                        size="sm"
-                                        colorScheme="green"
-                                        onClick={handleSaveAdmin}
-                                      />
-                                      <IconButton
-                                        aria-label="Cancel"
-                                        icon={<FiX />}
-                                        size="sm"
-                                        onClick={handleCancelEdit}
-                                      />
-                                    </HStack>
-                                  ) : (
-                                    <HStack spacing={2}>
-                                      <IconButton
-                                        aria-label="Edit unit admin"
-                                        icon={<FiEdit2 />}
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() =>
-                                          handleEditAdmin(unitAdmin)
-                                        }
-                                      />
-                                      <IconButton
-                                        aria-label="Delete unit admin"
-                                        icon={<FiTrash2 />}
-                                        size="sm"
-                                        variant="ghost"
-                                        colorScheme="red"
-                                        onClick={() =>
-                                          handleDeleteUser(unitAdmin.id)
-                                        }
-                                      />
-                                      <IconButton
-                                        aria-label="Reset password"
-                                        icon={<FiKey />}
-                                        size="sm"
-                                        variant="ghost"
-                                        colorScheme="orange"
-                                      />
-                                    </HStack>
-                                  )}
+                                  <HStack spacing={2}>
+                                    <IconButton
+                                      aria-label="Edit unit admin"
+                                      icon={<FiEdit2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() =>
+                                        handleEditUnitAdmin(unitAdmin)
+                                      }
+                                    />
+                                    <IconButton
+                                      aria-label="Delete unit admin"
+                                      icon={<FiTrash2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      colorScheme="red"
+                                      onClick={() =>
+                                        handleDeleteUser(unitAdmin.id)
+                                      }
+                                    />
+                                    <IconButton
+                                      aria-label="Reset password"
+                                      icon={<FiKey />}
+                                      size="sm"
+                                      variant="ghost"
+                                      colorScheme="orange"
+                                    />
+                                  </HStack>
                                 </Td>
                               </Tr>
                             ))}
@@ -2581,22 +2262,9 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                             >
                               <CardBody>
                                 <VStack align="stretch" spacing={2}>
-                                  {editingDeptId === dept.id ? (
-                                    <Input
-                                      size="sm"
-                                      value={editingDeptData.name}
-                                      onChange={(e) =>
-                                        setEditingDeptData({
-                                          ...editingDeptData,
-                                          name: e.target.value,
-                                        })
-                                      }
-                                    />
-                                  ) : (
-                                    <Text fontWeight="bold" fontSize="lg">
-                                      {dept.name}
-                                    </Text>
-                                  )}
+                                  <Text fontWeight="bold" fontSize="lg">
+                                    {dept.name}
+                                  </Text>
                                   <HStack justify="space-between">
                                     <Text fontSize="sm" color="gray.500">
                                       Unit
@@ -2627,67 +2295,44 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                   <Divider />
 
                                   <Flex justify="flex-end" gap={2}>
-                                    {editingDeptId === dept.id ? (
-                                      <>
-                                        
-                                        <IconButton
-                                          aria-label="Save"
-                                          icon={<FiCheck />}
-                                          size="sm"
-                                          colorScheme="green"
-                                          onClick={handleSaveDept}
-                                        />
-                                        <IconButton
-                                          aria-label="Cancel"
-                                          icon={<FiX />}
-                                          size="sm"
-                                          onClick={handleCancelEdit}
-                                        />
-                                      </>
-                                    ) : (
-                                      <>
-                                      <Flex align="center" gap={2}>
-                                    <Badge
-                                      colorScheme={
-                                        dept.is_active ? "green" : "gray"
-                                      }
-                                      variant="subtle"
-                                    >
-                                      {dept.is_active
-                                        ? "Active"
-                                        : "Inactive"}
-                                    </Badge>
-                                    <Switch
+                                    <Flex align="center" gap={2}>
+                                      <Badge
+                                        colorScheme={
+                                          dept.is_active ? "green" : "gray"
+                                        }
+                                        variant="subtle"
+                                      >
+                                        {dept.is_active ? "Active" : "Inactive"}
+                                      </Badge>
+                                      <Switch
+                                        size="sm"
+                                        isChecked={dept.is_active}
+                                        onChange={() =>
+                                          handleToggleStatus(
+                                            "departments",
+                                            dept.id,
+                                            dept.is_active,
+                                          )
+                                        }
+                                      />
+                                    </Flex>
+                                    <IconButton
+                                      aria-label="Edit department"
+                                      icon={<FiEdit2 />}
                                       size="sm"
-                                      isChecked={dept.is_active}
-                                      onChange={() =>
-                                        handleToggleStatus(
-                                          "departments",
-                                          dept.id,
-                                          dept.is_active,
-                                        )
+                                      variant="ghost"
+                                      onClick={() => handleEditDept(dept)}
+                                    />
+                                    <IconButton
+                                      aria-label="Delete department"
+                                      icon={<FiTrash2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      colorScheme="red"
+                                      onClick={() =>
+                                        handleDeleteDepartment(dept.id)
                                       }
                                     />
-                                  </Flex>
-                                        <IconButton
-                                          aria-label="Edit department"
-                                          icon={<FiEdit2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => handleEditDept(dept)}
-                                        />
-                                        <IconButton
-                                          aria-label="Delete department"
-                                          icon={<FiTrash2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          colorScheme="red"
-                                          onClick={() =>
-                                            handleDeleteDepartment(dept.id)
-                                          }
-                                        />
-                                      </>
-                                    )}
                                   </Flex>
                                 </VStack>
                               </CardBody>
@@ -2714,44 +2359,31 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                             {filteredDepartments.map((dept) => (
                               <Tr key={dept.id}>
                                 <Td fontWeight="medium">
-                                  {editingDeptId === dept.id ? (
-                                    <Input
-                                      size="sm"
-                                      value={editingDeptData.name}
-                                      onChange={(e) =>
-                                        setEditingDeptData({
-                                          ...editingDeptData,
-                                          name: e.target.value,
-                                        })
-                                      }
-                                    />
-                                  ) : (
-                                    dept.name
-                                  )}
+                                  {dept.name}
                                 </Td>
                                 <Td>{dept.unit_name }</Td>
-                                <Td>{dept.user_count}</Td>
-                                <Td>{dept.asset_count}</Td>
+                                <Td fontWeight={"semibold"} color={"blue.600"}>{dept.user_count}</Td>
+                                <Td fontWeight={"semibold"} color={"green.600"}>{dept.asset_count}</Td>
                                 <Td>
                                   <Flex align="center" gap={2}>
                                     <Badge
                                       colorScheme={
-                                        dept.is_active ? "green" : "gray"
+                                        dept.status ? "green" : "gray"
                                       }
                                       variant="subtle"
                                     >
-                                      {dept.is_active
+                                      {dept.status
                                         ? "Active"
                                         : "Inactive"}
                                     </Badge>
                                     <Switch
                                       size="sm"
-                                      isChecked={dept.is_active}
+                                      isChecked={dept.status}
                                       onChange={() =>
                                         handleToggleStatus(
                                           "departments",
                                           dept.id,
-                                          dept.is_active,
+                                          dept.status,
                                         )
                                       }
                                     />
@@ -2759,45 +2391,23 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                 </Td>
                                 <Td>
                                   <HStack spacing={2}>
-                                    {editingDeptId === dept.id ? (
-                                      <>
-                                      
-                                        <IconButton
-                                          aria-label="Save"
-                                          icon={<FiCheck />}
-                                          size="sm"
-                                          colorScheme="green"
-                                          onClick={handleSaveDept}
-                                        />
-                                        <IconButton
-                                          aria-label="Cancel"
-                                          icon={<FiX />}
-                                          size="sm"
-                                          onClick={handleCancelEdit}
-                                        />
-                                      </>
-                                    ) : (
-                                      <>
-                                        
-                                        <IconButton
-                                          aria-label="Edit department"
-                                          icon={<FiEdit2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => handleEditDept(dept)}
-                                        />
-                                        <IconButton
-                                          aria-label="Delete department"
-                                          icon={<FiTrash2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          colorScheme="red"
-                                          onClick={() =>
-                                            handleDeleteDepartment(dept.id)
-                                          }
-                                        />
-                                      </>
-                                    )}
+                                    <IconButton
+                                      aria-label="Edit department"
+                                      icon={<FiEdit2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleEditDept(dept)}
+                                    />
+                                    <IconButton
+                                      aria-label="Delete department"
+                                      icon={<FiTrash2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      colorScheme="red"
+                                      onClick={() =>
+                                        handleDeleteDepartment(dept.id)
+                                      }
+                                    />
                                   </HStack>
                                 </Td>
                               </Tr>
@@ -2865,45 +2475,16 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                         name={`${user.first_name} ${user.last_name}`}
                                       />
                                       <Box>
-                                        {editingUserId === user.id ? (
-                                          <VStack spacing={2} align="start">
-                                            <Input
-                                              size="xs"
-                                              value={editingUserData.first_name}
-                                              onChange={(e) =>
-                                                setEditingUserData({
-                                                  ...editingUserData,
-                                                  first_name: e.target.value,
-                                                })
-                                              }
-                                              placeholder="First name"
-                                            />
-                                            <Input
-                                              size="xs"
-                                              value={editingUserData.last_name}
-                                              onChange={(e) =>
-                                                setEditingUserData({
-                                                  ...editingUserData,
-                                                  last_name: e.target.value,
-                                                })
-                                              }
-                                              placeholder="Last name"
-                                            />
-                                          </VStack>
-                                        ) : (
-                                          <>
-                                            <Text fontWeight="bold">
-                                              {user.first_name} {user.last_name}
-                                            </Text>
-                                            <Tag
-                                              px={2}
-                                              size="xs"
-                                              colorScheme="blue"
-                                            >
-                                              {user.role}
-                                            </Tag>
-                                          </>
-                                        )}
+                                        <Text fontWeight="bold">
+                                          {user.first_name} {user.last_name}
+                                        </Text>
+                                        <Tag
+                                          px={2}
+                                          size="xs"
+                                          colorScheme="blue"
+                                        >
+                                          {user.role}
+                                        </Tag>
                                       </Box>
                                     </HStack>
                                     <Badge
@@ -2918,21 +2499,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
 
                                   <HStack>
                                     <FiMail size={14} />
-                                    {editingUserId === user.id ? (
-                                      <Input
-                                        size="xs"
-                                        value={editingUserData.email}
-                                        onChange={(e) =>
-                                          setEditingUserData({
-                                            ...editingUserData,
-                                            email: e.target.value,
-                                          })
-                                        }
-                                        placeholder="Email"
-                                      />
-                                    ) : (
-                                      <Text fontSize="sm">{user.email}</Text>
-                                    )}
+                                    <Text fontSize="sm">{user.email}</Text>
                                   </HStack>
 
                                   <Box>
@@ -2969,43 +2536,23 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                   <Divider />
 
                                   <Flex justify="flex-end" gap={2}>
-                                    {editingUserId === user.id ? (
-                                      <>
-                                        <IconButton
-                                          aria-label="Save user"
-                                          icon={<FiCheck />}
-                                          size="sm"
-                                          colorScheme="green"
-                                          onClick={handleSaveUser}
-                                        />
-                                        <IconButton
-                                          aria-label="Cancel editing"
-                                          icon={<FiX />}
-                                          size="sm"
-                                          onClick={handleCancelEdit}
-                                        />
-                                      </>
-                                    ) : (
-                                      <>
-                                        <IconButton
-                                          aria-label="Edit user"
-                                          icon={<FiEdit2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => handleEditUser(user)}
-                                        />
-                                        <IconButton
-                                          aria-label="Delete user"
-                                          icon={<FiTrash2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          colorScheme="red"
-                                          onClick={() =>
-                                            handleDeleteUser(user.id)
-                                          }
-                                        />
-                                      </>
-                                    )}
+                                    <IconButton
+                                      aria-label="Edit user"
+                                      icon={<FiEdit2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleEditUser(user)}
+                                    />
+                                    <IconButton
+                                      aria-label="Delete user"
+                                      icon={<FiTrash2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      colorScheme="red"
+                                      onClick={() =>
+                                        handleDeleteUser(user.id)
+                                      }
+                                    />
                                   </Flex>
                                 </VStack>
                               </CardBody>
@@ -3037,52 +2584,12 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                       size="sm"
                                       name={`${user.first_name} ${user.last_name}`}
                                     />
-                                    {editingUserId === user.id ? (
-                                      <HStack spacing={2}>
-                                        <Input
-                                          size="sm"
-                                          value={editingUserData.first_name}
-                                          onChange={(e) =>
-                                            setEditingUserData({
-                                              ...editingUserData,
-                                              first_name: e.target.value,
-                                            })
-                                          }
-                                        />
-                                        <Input
-                                          size="sm"
-                                          value={editingUserData.last_name}
-                                          onChange={(e) =>
-                                            setEditingUserData({
-                                              ...editingUserData,
-                                              last_name: e.target.value,
-                                            })
-                                          }
-                                        />
-                                      </HStack>
-                                    ) : (
-                                      <Text fontWeight="medium">
-                                        {user.first_name} {user.last_name}
-                                      </Text>
-                                    )}
+                                    <Text fontWeight="medium">
+                                      {user.first_name} {user.last_name}
+                                    </Text>
                                   </HStack>
                                 </Td>
-                                <Td>
-                                  {editingUserId === user.id ? (
-                                    <Input
-                                      size="sm"
-                                      value={editingUserData.email}
-                                      onChange={(e) =>
-                                        setEditingUserData({
-                                          ...editingUserData,
-                                          email: e.target.value,
-                                        })
-                                      }
-                                    />
-                                  ) : (
-                                    user.email
-                                  )}
-                                </Td>
+                                <Td>{user.email}</Td>
                                 <Td>
                                   <Tag size="sm" colorScheme="blue">
                                     {user.role}
@@ -3120,43 +2627,25 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                   </Flex>
                                 </Td>
                                 <Td>
-                                  {editingUserId === user.id ? (
-                                    <HStack spacing={2}>
-                                      <IconButton
-                                        aria-label="Save"
-                                        icon={<FiCheck />}
-                                        size="sm"
-                                        colorScheme="green"
-                                        onClick={handleSaveUser}
-                                      />
-                                      <IconButton
-                                        aria-label="Cancel"
-                                        icon={<FiX />}
-                                        size="sm"
-                                        onClick={handleCancelEdit}
-                                      />
-                                    </HStack>
-                                  ) : (
-                                    <HStack spacing={2}>
-                                      <IconButton
-                                        aria-label="Edit user"
-                                        icon={<FiEdit2 />}
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => handleEditUser(user)}
-                                      />
-                                      <IconButton
-                                        aria-label="Delete user"
-                                        icon={<FiTrash2 />}
-                                        size="sm"
-                                        variant="ghost"
-                                        colorScheme="red"
-                                        onClick={() =>
-                                          handleDeleteUser(user.id)
-                                        }
-                                      />
-                                    </HStack>
-                                  )}
+                                  <HStack spacing={2}>
+                                    <IconButton
+                                      aria-label="Edit user"
+                                      icon={<FiEdit2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleEditUser(user)}
+                                    />
+                                    <IconButton
+                                      aria-label="Delete user"
+                                      icon={<FiTrash2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      colorScheme="red"
+                                      onClick={() =>
+                                        handleDeleteUser(user.id)
+                                      }
+                                    />
+                                  </HStack>
                                 </Td>
                               </Tr>
                             ))}
@@ -3237,41 +2726,12 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                         name={`${user.first_name} ${user.last_name}`}
                                       />
                                       <Box>
-                                        {editingUserId === user.id ? (
-                                          <VStack spacing={2} align="start">
-                                            <Input
-                                              size="xs"
-                                              value={editingUserData.first_name}
-                                              onChange={(e) =>
-                                                setEditingUserData({
-                                                  ...editingUserData,
-                                                  first_name: e.target.value,
-                                                })
-                                              }
-                                              placeholder="First name"
-                                            />
-                                            <Input
-                                              size="xs"
-                                              value={editingUserData.last_name}
-                                              onChange={(e) =>
-                                                setEditingUserData({
-                                                  ...editingUserData,
-                                                  last_name: e.target.value,
-                                                })
-                                              }
-                                              placeholder="Last name"
-                                            />
-                                          </VStack>
-                                        ) : (
-                                          <>
-                                            <Text fontWeight="bold">
-                                              {user.first_name} {user.last_name}
-                                            </Text>
-                                            <Tag size="xs" colorScheme="blue">
-                                              {user.role}
-                                            </Tag>
-                                          </>
-                                        )}
+                                        <Text fontWeight="bold">
+                                          {user.first_name} {user.last_name}
+                                        </Text>
+                                        <Tag size="xs" colorScheme="blue">
+                                          {user.role}
+                                        </Tag>
                                       </Box>
                                     </HStack>
                                     <Badge
@@ -3286,21 +2746,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
 
                                   <HStack>
                                     <FiMail size={14} />
-                                    {editingUserId === user.id ? (
-                                      <Input
-                                        size="xs"
-                                        value={editingUserData.email}
-                                        onChange={(e) =>
-                                          setEditingUserData({
-                                            ...editingUserData,
-                                            email: e.target.value,
-                                          })
-                                        }
-                                        placeholder="Email"
-                                      />
-                                    ) : (
-                                      <Text fontSize="sm">{user.email}</Text>
-                                    )}
+                                    <Text fontSize="sm">{user.email}</Text>
                                   </HStack>
 
                                   <Box>
@@ -3337,43 +2783,23 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                   <Divider />
 
                                   <Flex justify="flex-end" gap={2}>
-                                    {editingUserId === user.id ? (
-                                      <>
-                                        <IconButton
-                                          aria-label="Save user"
-                                          icon={<FiCheck />}
-                                          size="sm"
-                                          colorScheme="green"
-                                          onClick={handleSaveUser}
-                                        />
-                                        <IconButton
-                                          aria-label="Cancel editing"
-                                          icon={<FiX />}
-                                          size="sm"
-                                          onClick={handleCancelEdit}
-                                        />
-                                      </>
-                                    ) : (
-                                      <>
-                                        <IconButton
-                                          aria-label="Edit user"
-                                          icon={<FiEdit2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => handleEditUser(user)}
-                                        />
-                                        <IconButton
-                                          aria-label="Delete user"
-                                          icon={<FiTrash2 />}
-                                          size="sm"
-                                          variant="ghost"
-                                          colorScheme="red"
-                                          onClick={() =>
-                                            handleDeleteUser(user.id)
-                                          }
-                                        />
-                                      </>
-                                    )}
+                                    <IconButton
+                                      aria-label="Edit user"
+                                      icon={<FiEdit2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleEditUser(user)}
+                                    />
+                                    <IconButton
+                                      aria-label="Delete user"
+                                      icon={<FiTrash2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      colorScheme="red"
+                                      onClick={() =>
+                                        handleDeleteUser(user.id)
+                                      }
+                                    />
                                   </Flex>
                                 </VStack>
                               </CardBody>
@@ -3405,52 +2831,12 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                       size="sm"
                                       name={`${user.first_name} ${user.last_name}`}
                                     />
-                                    {editingUserId === user.id ? (
-                                      <HStack spacing={2}>
-                                        <Input
-                                          size="sm"
-                                          value={editingUserData.first_name}
-                                          onChange={(e) =>
-                                            setEditingUserData({
-                                              ...editingUserData,
-                                              first_name: e.target.value,
-                                            })
-                                          }
-                                        />
-                                        <Input
-                                          size="sm"
-                                          value={editingUserData.last_name}
-                                          onChange={(e) =>
-                                            setEditingUserData({
-                                              ...editingUserData,
-                                              last_name: e.target.value,
-                                            })
-                                          }
-                                        />
-                                      </HStack>
-                                    ) : (
-                                      <Text fontWeight="medium">
-                                        {user.first_name} {user.last_name}
-                                      </Text>
-                                    )}
+                                    <Text fontWeight="medium">
+                                      {user.first_name} {user.last_name}
+                                    </Text>
                                   </HStack>
                                 </Td>
-                                <Td>
-                                  {editingUserId === user.id ? (
-                                    <Input
-                                      size="sm"
-                                      value={editingUserData.email}
-                                      onChange={(e) =>
-                                        setEditingUserData({
-                                          ...editingUserData,
-                                          email: e.target.value,
-                                        })
-                                      }
-                                    />
-                                  ) : (
-                                    user.email
-                                  )}
-                                </Td>
+                                <Td>{user.email}</Td>
                                 <Td>
                                   <Tag size="sm" colorScheme="blue">
                                     {user.role}
@@ -3488,43 +2874,25 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                   </Flex>
                                 </Td>
                                 <Td>
-                                  {editingUserId === user.id ? (
-                                    <HStack spacing={2}>
-                                      <IconButton
-                                        aria-label="Save"
-                                        icon={<FiCheck />}
-                                        size="sm"
-                                        colorScheme="green"
-                                        onClick={handleSaveUser}
-                                      />
-                                      <IconButton
-                                        aria-label="Cancel"
-                                        icon={<FiX />}
-                                        size="sm"
-                                        onClick={handleCancelEdit}
-                                      />
-                                    </HStack>
-                                  ) : (
-                                    <HStack spacing={2}>
-                                      <IconButton
-                                        aria-label="Edit user"
-                                        icon={<FiEdit2 />}
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => handleEditUser(user)}
-                                      />
-                                      <IconButton
-                                        aria-label="Delete user"
-                                        icon={<FiTrash2 />}
-                                        onClick={() =>
-                                          handleDeleteUser(user.id)
-                                        }
-                                        size="sm"
-                                        variant="ghost"
-                                        colorScheme="red"
-                                      />
-                                    </HStack>
-                                  )}
+                                  <HStack spacing={2}>
+                                    <IconButton
+                                      aria-label="Edit user"
+                                      icon={<FiEdit2 />}
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleEditUser(user)}
+                                    />
+                                    <IconButton
+                                      aria-label="Delete user"
+                                      icon={<FiTrash2 />}
+                                      onClick={() =>
+                                        handleDeleteUser(user.id)
+                                      }
+                                      size="sm"
+                                      variant="ghost"
+                                      colorScheme="red"
+                                    />
+                                  </HStack>
                                 </Td>
                               </Tr>
                             ))}
@@ -3553,7 +2921,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
         <ModalOverlay />
         <ModalContent>
           <ModalHeader bg="teal.600" color="white">
-            Add New Organization
+            {isEditingOrg ? "Edit Organization" : "Add New Organization"}
           </ModalHeader>
           <ModalCloseButton color="white" />
           <ModalBody>
@@ -3578,7 +2946,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
               Cancel
             </Button>
             <Button colorScheme="teal" onClick={handleAddOrganization}>
-              Create Organization
+              {isEditingOrg ? "Update Organization" : "Create Organization"}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -3593,7 +2961,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
         <ModalOverlay />
         <ModalContent>
           <ModalHeader bg="teal.600" color="white">
-            Add Organization Admin
+            {isEditingAdmin ? "Edit Organization Admin" : "Add Organization Admin"}
           </ModalHeader>
           <ModalCloseButton color="white" />
           <ModalBody>
@@ -3606,6 +2974,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                   onChange={(e) =>
                     setNewAdmin({ ...newAdmin, organization: e.target.value })
                   }
+                  isDisabled={isEditingAdmin}
                 >
                   {organizations.map((org) => (
                     <option key={org.id} value={org.id}>
@@ -3679,7 +3048,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
               Cancel
             </Button>
             <Button colorScheme="teal" onClick={handleAddAdmin}>
-              Add Admin
+              {isEditingAdmin ? "Update Admin" : "Add Admin"}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -3694,7 +3063,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
         <ModalOverlay />
         <ModalContent>
           <ModalHeader bg="teal.600" color="white">
-            Add New Unit
+            {isEditingUnit ? "Edit Unit" : "Add New Unit"}
           </ModalHeader>
           <ModalCloseButton color="white" />
           <ModalBody>
@@ -3716,7 +3085,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
               Cancel
             </Button>
             <Button colorScheme="teal" onClick={handleAddUnit}>
-              Create Unit
+              {isEditingUnit ? "Update Unit" : "Create Unit"}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -3731,7 +3100,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
         <ModalOverlay />
         <ModalContent>
           <ModalHeader bg="teal.600" color="white">
-            Add Unit Administrator
+            {isEditingUnitAdmin ? "Edit Unit Administrator" : "Add Unit Administrator"}
           </ModalHeader>
           <ModalCloseButton color="white" />
           <ModalBody>
@@ -3744,6 +3113,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                   onChange={(e) =>
                     setNewUnitAdmin({ ...newUnitAdmin, unit: e.target.value })
                   }
+                  isDisabled={isEditingUnitAdmin}
                 >
                   {units.map((unit) => (
                     <option key={unit.id} value={unit.id}>
@@ -3842,7 +3212,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
               Cancel
             </Button>
             <Button colorScheme="teal" onClick={handleAddUnitAdmin}>
-              Create Unit Admin
+              {isEditingUnitAdmin ? "Update Unit Admin" : "Create Unit Admin"}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -3853,16 +3223,17 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
         isOpen={isUserOpen}
         onClose={onUserClose}
         size={{ base: "sm", md: "lg" }}
+        scrollBehavior="inside"
       >
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader bg="teal.600" color="white">
-            Add New User
+          <ModalHeader borderTopRadius={"md"} bg="teal.600" color="white">
+            {isEditingUser ? "Edit User" : "Add New User"}
           </ModalHeader>
           <ModalCloseButton color="white" />
           <ModalBody>
             <VStack spacing={4}>
-              {userRole === "org_admin" && (
+              {(userRole === "org_admin" || userRole === "unit_admin") && (
                 <FormControl isRequired>
                   <FormLabel>Select Unit</FormLabel>
                   <Select
@@ -3871,10 +3242,11 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                     onChange={(e) =>
                       setNewUser({ ...newUser, unit: e.target.value })
                     }
+                    isDisabled={userRole === "unit_admin"}
                   >
                     {units.map((unit) => (
                       <option key={unit.id} value={unit.id}>
-                        {unit.name} ({unit.organization_name})
+                        {unit.name} {unit.organization_name && `(${unit.organization_name})`}
                       </option>
                     ))}
                   </Select>
@@ -3935,33 +3307,41 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                 </Select>
               </FormControl>
               <FormControl>
-                <FormLabel>Department(s)</FormLabel>
-                <VStack align="start" spacing={2}>
-                  {departments.map((dept) => (
-                    <Checkbox
-                      key={dept.id}
-                      isChecked={newUser.departments.includes(dept.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setNewUser({
-                            ...newUser,
-                            departments: [...newUser.departments, dept.id],
-                          });
-                        } else {
-                          setNewUser({
-                            ...newUser,
-                            departments: newUser.departments.filter(
-                              (id) => id !== dept.id,
-                            ),
-                          });
-                        }
-                      }}
-                    >
-                      {dept.name}
-                    </Checkbox>
-                  ))}
-                </VStack>
-              </FormControl>
+  <FormLabel>Department(s)</FormLabel>
+
+  {userRole === "org_admin" && !newUser.unit ? (
+    <Text fontSize="sm" color="gray.500">
+      Please select a unit first
+    </Text>
+  ) : (
+    <VStack align="start" spacing={2}>
+      {selectedUnitDepartments.map((dept) => (
+        <Checkbox
+          key={dept.id}
+          isChecked={newUser.departments.includes(dept.id)}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setNewUser({
+                ...newUser,
+                departments: [...newUser.departments, dept.id],
+              });
+            } else {
+              setNewUser({
+                ...newUser,
+                departments: newUser.departments.filter(
+                  (id) => id !== dept.id
+                ),
+              });
+            }
+          }}
+        >
+          {dept.name}
+        </Checkbox>
+      ))}
+    </VStack>
+  )}
+</FormControl>
+
             </VStack>
           </ModalBody>
           <ModalFooter>
@@ -3969,7 +3349,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
               Cancel
             </Button>
             <Button colorScheme="teal" onClick={handleAddUser}>
-              Add User
+              {isEditingUser ? "Update User" : "Add User"}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -3984,7 +3364,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
         <ModalOverlay />
         <ModalContent>
           <ModalHeader bg="teal.600" color="white">
-            Add Department
+            {isEditingDept ? "Edit Department" : "Add Department"}
           </ModalHeader>
           <ModalCloseButton color="white" />
           <ModalBody>
@@ -4035,7 +3415,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
               Cancel
             </Button>
             <Button colorScheme="teal" onClick={handleAddDepartment}>
-              Add Department
+              {isEditingDept ? "Update Department" : "Add Department"}
             </Button>
           </ModalFooter>
         </ModalContent>

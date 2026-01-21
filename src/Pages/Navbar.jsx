@@ -488,9 +488,7 @@ const clearAllNotifications = async () => {
                       border="1px solid"
                       borderColor={borderColor}
                     >
-                      
-                      {getNotificationIcon(notification.type)}
-                      
+                      {getNotificationIcon(notification.type)}  
                     </Center>
                     
                     <Box flex="1">
@@ -564,7 +562,7 @@ const clearAllNotifications = async () => {
         </Box>
       </MenuList>
     </Menu>
-
+   
     <ConfirmationModal
       isOpen={isConfirmOpen}
       onClose={onConfirmClose}

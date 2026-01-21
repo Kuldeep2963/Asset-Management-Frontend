@@ -86,6 +86,14 @@ const AddAsset = () => {
     unit: "",
     asset_type: "",
     department: "",
+    purchase_date: "",
+    installation_date: "",
+    warranty_expiry_date: "",
+    license_expiry_date: "",
+    calibration_due_date: "",
+    last_calibrated_at: "",
+    last_serviced_at: "",
+    next_service_due: "",
   });
 
   useEffect(() => {
@@ -160,6 +168,14 @@ const AddAsset = () => {
         unit: data.unit || "",
         asset_type: data.asset_type || "",
         department: data.department || "",
+        purchase_date: data.purchase_date || "",
+        installation_date: data.installation_date || "",
+        warranty_expiry_date: data.warranty_expiry_date || "",
+        license_expiry_date: data.license_expiry_date || "",
+        calibration_due_date: data.calibration_due_date || "",
+        last_calibrated_at: data.last_calibrated_at || "",
+        last_serviced_at: data.last_serviced_at || "",
+        next_service_due: data.next_service_due || "",
       });
 
       if (data.amc_contract) {
@@ -411,6 +427,14 @@ const AddAsset = () => {
           unit: user?.unit?.id || "",
           asset_type: "",
           department: "",
+          purchase_date: "",
+          installation_date: "",
+          warranty_expiry_date: "",
+          license_expiry_date: "",
+          calibration_due_date: "",
+          last_calibrated_at: "",
+          last_serviced_at: "",
+          next_service_due: "",
         });
 
         const initialCustomFields = {};
@@ -674,6 +698,94 @@ const AddAsset = () => {
                         </option>
                       ))}
                     </Select>
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel>Purchase Date</FormLabel>
+                    <Input
+                      type="date"
+                      name="purchase_date"
+                      value={defaultFields.purchase_date}
+                      onChange={handleDefaultFieldChange}
+                      isReadOnly={viewMode}
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel>Installation Date</FormLabel>
+                    <Input
+                      type="date"
+                      name="installation_date"
+                      value={defaultFields.installation_date}
+                      onChange={handleDefaultFieldChange}
+                      isReadOnly={viewMode}
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel>Warranty Expiry Date</FormLabel>
+                    <Input
+                      type="date"
+                      name="warranty_expiry_date"
+                      value={defaultFields.warranty_expiry_date}
+                      onChange={handleDefaultFieldChange}
+                      isReadOnly={viewMode}
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel>License Expiry Date</FormLabel>
+                    <Input
+                      type="date"
+                      name="license_expiry_date"
+                      value={defaultFields.license_expiry_date}
+                      onChange={handleDefaultFieldChange}
+                      isReadOnly={viewMode}
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel>Calibration Due Date</FormLabel>
+                    <Input
+                      type="date"
+                      name="calibration_due_date"
+                      value={defaultFields.calibration_due_date}
+                      onChange={handleDefaultFieldChange}
+                      isReadOnly={viewMode}
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel>Last Calibrated At</FormLabel>
+                    <Input
+                      type="date"
+                      name="last_calibrated_at"
+                      value={defaultFields.last_calibrated_at}
+                      onChange={handleDefaultFieldChange}
+                      isReadOnly={viewMode}
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel>Last Serviced At</FormLabel>
+                    <Input
+                      type="date"
+                      name="last_serviced_at"
+                      value={defaultFields.last_serviced_at}
+                      onChange={handleDefaultFieldChange}
+                      isReadOnly={viewMode}
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel>Next Service Due</FormLabel>
+                    <Input
+                      type="date"
+                      name="next_service_due"
+                      value={defaultFields.next_service_due}
+                      onChange={handleDefaultFieldChange}
+                      isReadOnly={viewMode}
+                    />
                   </FormControl>
                 </SimpleGrid>
 

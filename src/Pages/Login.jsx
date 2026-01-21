@@ -115,7 +115,6 @@ const LoginPage = () => {
         duration: 3000,
         isClosable: true,
       });
-      console.log(completeUserData,'hjgfhdshj')
       // Redirect based on role
       redirectBasedOnRole(userData.role, completeUserData);
 
@@ -125,8 +124,8 @@ const LoginPage = () => {
       toast({
         title: 'Login failed',
         description: error.message || 'Invalid email or password',
-        status: 'error',
-        duration: 3000,
+        status: 'warning',
+        duration: 2000,
         isClosable: true,
       });
       
