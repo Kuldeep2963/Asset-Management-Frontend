@@ -169,7 +169,8 @@ import {
   LineElement,
   Tooltip as ChartTooltip,
 } from "chart.js";
-import axios from "axios";
+import api from "../services/api";
+import ConfirmationModal from "../Components/modals/ConfirmationModal";
 import {
   format,
   addDays,
@@ -190,72 +191,6 @@ ChartJS.register(
   ArcElement,
   PointElement,
   LineElement,
-);
-
-const API_BASE_URL = "https://asset-management-backend-7y34.onrender.com";
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-});
-
-api.interceptors.request.use(
-  (config) => {
-    let accessToken = localStorage.getItem("access_token");
-    if (!accessToken) {
-      accessToken = sessionStorage.getItem("access_token");
-    }
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  },
-);
-
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      try {
-        let refreshToken = localStorage.getItem("refresh_token");
-        const isSessionStorage = !refreshToken;
-        if (!refreshToken) {
-          refreshToken = sessionStorage.getItem("refresh_token");
-        }
-
-        const response = await axios.post(
-          `${API_BASE_URL}/api/token/refresh/`,
-          {
-            refresh: refreshToken,
-          },
-        );
-
-        if (isSessionStorage) {
-          sessionStorage.setItem("access_token", response.data.access);
-        } else {
-          localStorage.setItem("access_token", response.data.access);
-        }
-        originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
-        return api(originalRequest);
-      } catch (refreshError) {
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        sessionStorage.removeItem("user");
-        sessionStorage.removeItem("token");
-        sessionStorage.removeItem("access_token");
-        sessionStorage.removeItem("refresh_token");
-        window.location.href = "/";
-        return Promise.reject(refreshError);
-      }
-    }
-    return Promise.reject(error);
-  },
 );
 
 const AMC = () => {
@@ -303,6 +238,62 @@ const AMC = () => {
     onOpen: onBulkUploadOpen,
     onClose: onBulkUploadClose,
   } = useDisclosure();
+
+  // Confirmation Modal State
+  const {
+    isOpen: isConfirmOpen,
+    onOpen: onConfirmOpen,
+    onClose: onConfirmClose,
+  } = useDisclosure();
+  const [confirmConfig, setConfirmConfig] = useState({
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    colorScheme: "red",
+  });
+
+  const triggerConfirm = (config) => {
+    setConfirmConfig({
+      ...config,
+      onConfirm: async () => {
+        await config.onConfirm();
+        onConfirmClose();
+      },
+    });
+    onConfirmOpen();
+  };
+
+  const handleExportData = async () => {
+    try {
+      const response = await api.get("/api/contracts/export/", {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `contracts_export_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast({
+        title: "Export Successful",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    } catch (error) {
+      console.error("Error exporting contracts:", error);
+      toast({
+        title: "Export Failed",
+        description: error.response?.data?.detail || "Failed to export contracts",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }
+  };
 
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -384,7 +375,7 @@ const AMC = () => {
 
   const fetchContracts = async () => {
     try {
-      const response = await api.get(`${API_BASE_URL}/api/contracts/`);
+      const response = await api.get("/api/contracts/");
       setContracts(response.data);
       return response.data;
     } catch (error) {
@@ -404,7 +395,7 @@ const AMC = () => {
   const fetchVendors = async () => {
     try {
       setIsVendorsLoading(true);
-      const response = await api.get(`${API_BASE_URL}/api/vendors/`);
+      const response = await api.get("/api/vendors/");
       setVendors(response.data);
       return response.data;
     } catch (error) {
@@ -425,7 +416,7 @@ const AMC = () => {
   const fetchAssets = async () => {
     try {
       setIsAssetsLoading(true);
-      const response = await api.get(`${API_BASE_URL}/api/assets/`);
+      const response = await api.get("/api/assets/");
       setAssets(response.data);
     } catch (error) {
       console.error("Error fetching assets:", error);
@@ -444,7 +435,7 @@ const AMC = () => {
   const fetchContractAssets = async (contractId) => {
     try {
       const response = await api.get(
-        `${API_BASE_URL}/api/contracts/${contractId}/assets/`,
+        `/api/contracts/${contractId}/assets/`,
       );
       return response.data;
     } catch (error) {
@@ -456,7 +447,7 @@ const AMC = () => {
   const fetchAssetAMCInfo = async (assetId) => {
     try {
       const response = await api.get(
-        `${API_BASE_URL}/api/assets/${assetId}/amc_cmc/`,
+        `/api/assets/${assetId}/amc_cmc/`,
       );
       return response.data;
     } catch (error) {
@@ -668,36 +659,36 @@ const AMC = () => {
     }
   };
 
-  const handleDeleteContract = async (contractId) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this contract? This action cannot be undone.",
-      )
-    ) {
-      try {
-        await api.delete(`${API_BASE_URL}/api/contracts/${contractId}/`);
-        toast({
-          title: "Deleted",
-          description: "Contract has been deleted successfully",
-          status: "info",
-          duration: 3000,
-          isClosable: true,
-          position: "top-right",
-        });
-        await fetchAllData();
-      } catch (error) {
-        console.error("Error deleting contract:", error);
-        toast({
-          title: "Error",
-          description:
-            error.response?.data?.detail || "Failed to delete contract",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-          position: "top-right",
-        });
-      }
-    }
+  const handleDeleteContract = (contractId) => {
+    triggerConfirm({
+      title: "Delete Contract",
+      message: "Are you sure you want to delete this contract? This action cannot be undone.",
+      onConfirm: async () => {
+        try {
+          await api.delete(`${API_BASE_URL}/api/contracts/${contractId}/`);
+          toast({
+            title: "Deleted",
+            description: "Contract has been deleted successfully",
+            status: "info",
+            duration: 3000,
+            isClosable: true,
+            position: "top-right",
+          });
+          await fetchAllData();
+        } catch (error) {
+          console.error("Error deleting contract:", error);
+          toast({
+            title: "Error",
+            description:
+              error.response?.data?.detail || "Failed to delete contract",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+            position: "top-right",
+          });
+        }
+      },
+    });
   };
 
   const handleViewDetails = async (contract) => {
@@ -2738,6 +2729,15 @@ const AMC = () => {
           </DrawerBody>
         </DrawerContent>
       </Drawer>
+
+      <ConfirmationModal
+        isOpen={isConfirmOpen}
+        onClose={onConfirmClose}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        onConfirm={confirmConfig.onConfirm}
+        colorScheme={confirmConfig.colorScheme}
+      />
     </Box>
   );
 };

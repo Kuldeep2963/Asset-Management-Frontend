@@ -245,7 +245,7 @@ const Settings = () => {
                       placeholder="Select Unit"
                       value={selectedUnitId}
                       onChange={(e) => setSelectedUnitId(e.target.value)}
-                      isDisabled={userData?.role === "unit_admin"}
+                      isDisabled={user?.role === "unit_admin"}
                     >
                       {units.map((unit) => (
                         <option key={unit.id} value={unit.id}>

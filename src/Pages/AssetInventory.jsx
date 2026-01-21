@@ -32,6 +32,7 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
+  useDisclosure,
 } from "@chakra-ui/react";
 import {
   FiPlus,
@@ -48,6 +49,8 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import AssignContractModal from "../Components/modals/AssignContractModal";
+import ConfirmationModal from "../Components/modals/ConfirmationModal";
+import BulkUploadModal from "../Components/modals/BulkUploadModal";
 
 const AssetInventory = () => {
   const { user } = useAuth();
@@ -66,6 +69,36 @@ const AssetInventory = () => {
   const [filterCategory, setFilterCategory] = useState("");
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
+
+  // Confirmation Modal State
+  const {
+    isOpen: isConfirmOpen,
+    onOpen: onConfirmOpen,
+    onClose: onConfirmClose,
+  } = useDisclosure();
+
+  const {
+    isOpen: isBulkUploadOpen,
+    onOpen: onBulkUploadOpen,
+    onClose: onBulkUploadClose,
+  } = useDisclosure();
+  const [confirmConfig, setConfirmConfig] = useState({
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    colorScheme: "red",
+  });
+
+  const triggerConfirm = (config) => {
+    setConfirmConfig({
+      ...config,
+      onConfirm: async () => {
+        await config.onConfirm();
+        onConfirmClose();
+      },
+    });
+    onConfirmOpen();
+  };
 
   useEffect(() => {
     if (user) {
@@ -92,31 +125,57 @@ const AssetInventory = () => {
     }
   };
 
-  const handleDeleteAsset = async (assetId) => {
-    if (!window.confirm("Are you sure you want to delete this asset?")) {
-      return;
-    }
-
+  const handleExportAssets = async () => {
     try {
-      await api.delete(`/api/assets/${assetId}/`);
-
-      toast({
-        title: "Asset deleted",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
+      const response = await api.get("/api/assets/export/", {
+        responseType: "blob",
       });
-
-      fetchAssets();
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `assets_export_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
     } catch (error) {
+      console.error("Error exporting assets:", error);
       toast({
-        title: "Error deleting asset",
+        title: "Error exporting assets",
         description: error.response?.data?.detail || error.message,
         status: "error",
         duration: 5000,
         isClosable: true,
       });
     }
+  };
+
+  const handleDeleteAsset = (assetId) => {
+    triggerConfirm({
+      title: "Delete Asset",
+      message: "Are you sure you want to delete this asset? This action cannot be undone.",
+      onConfirm: async () => {
+        try {
+          await api.delete(`/api/assets/${assetId}/`);
+
+          toast({
+            title: "Asset deleted",
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+          });
+
+          fetchAssets();
+        } catch (error) {
+          toast({
+            title: "Error deleting asset",
+            description: error.response?.data?.detail || error.message,
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+        }
+      },
+    });
   };
 
   const filteredAssets = assets.filter((asset) => {
@@ -165,6 +224,15 @@ const AssetInventory = () => {
               </Box>
             </HStack>
             {canManageAssets && (
+              <HStack spacing={4} >
+              <Button 
+                size={"sm"} 
+                colorScheme="green" 
+                variant={"solid"}
+                onClick={onBulkUploadOpen}
+              >
+                Bulk Upload
+              </Button>
               <Button
                 leftIcon={<FiPlus />}
                 colorScheme="blue"
@@ -173,6 +241,7 @@ const AssetInventory = () => {
               >
                 Add New Asset
               </Button>
+              </HStack>
             )}
           </Flex>
 
@@ -207,15 +276,7 @@ const AssetInventory = () => {
                   <Button
                     leftIcon={<FiDownload />}
                     variant="outline"
-                    onClick={() => {
-                      toast({
-                        title: "Export feature",
-                        description: "Export functionality coming soon",
-                        status: "info",
-                        duration: 3000,
-                        isClosable: true,
-                      });
-                    }}
+                    onClick={handleExportAssets}
                   >
                     Export
                   </Button>
@@ -459,6 +520,21 @@ const AssetInventory = () => {
         isOpen={showAssignModal}
         onClose={() => setShowAssignModal(false)}
         onSuccess={() => fetchAssets()}
+      />
+
+      <ConfirmationModal
+        isOpen={isConfirmOpen}
+        onClose={onConfirmClose}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        onConfirm={confirmConfig.onConfirm}
+        colorScheme={confirmConfig.colorScheme}
+      />
+
+      <BulkUploadModal
+        isOpen={isBulkUploadOpen}
+        onClose={onBulkUploadClose}
+        onUploadSuccess={fetchAssets}
       />
     </Box>
   );

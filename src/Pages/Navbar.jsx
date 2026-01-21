@@ -66,6 +66,7 @@ import {
   FiBell
 } from 'react-icons/fi';
 import api from '../services/api';
+import ConfirmationModal from '../Components/modals/ConfirmationModal';
 import { size } from 'lodash';
 
 const NotificationIcon = () => {
@@ -75,6 +76,31 @@ const NotificationIcon = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const { isOpen: isNotificationsOpen, onOpen: onNotificationsOpen, onClose: onNotificationsClose } = useDisclosure();
+  
+  // Confirmation Modal State
+  const {
+    isOpen: isConfirmOpen,
+    onOpen: onConfirmOpen,
+    onClose: onConfirmClose,
+  } = useDisclosure();
+  const [confirmConfig, setConfirmConfig] = useState({
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    colorScheme: "red",
+  });
+
+  const triggerConfirm = (config) => {
+    setConfirmConfig({
+      ...config,
+      onConfirm: async () => {
+        await config.onConfirm();
+        onConfirmClose();
+      },
+    });
+    onConfirmOpen();
+  };
+
   const menuRef = useRef(null);
   const toast = useToast();
   const navigate = useNavigate();
@@ -236,40 +262,42 @@ const deleteNotification = async (e, notificationId) => {
 const clearAllNotifications = async () => {
   if (notifications.length === 0) return;
   
-  if (!window.confirm('Are you sure you want to clear all notifications? This action cannot be undone.')) {
-    return;
-  }
-  
-  try {
-    // Check if your API supports bulk delete, otherwise delete individually
-    await Promise.all(
-      notifications.map(notif => api.delete(`/api/notifications/${notif.id}/`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
-      }))
-    );
-    
-    setNotifications([]);
-    setUnreadCount(0);
-    
-    toast({
-      title: 'Inbox cleared',
-      description: 'All notifications have been removed',
-      status: 'success',
-      duration: 2000,
-      isClosable: true,
-    });
-  } catch (error) {
-    console.error('Error clearing notifications:', error);
-    toast({
-      title: 'Error',
-      description: 'Failed to clear notifications',
-      status: 'error',
-      duration: 3000,
-      isClosable: true,
-    });
-  }
+  triggerConfirm({
+    title: 'Clear All Notifications',
+    message: 'Are you sure you want to clear all notifications? This action cannot be undone.',
+    onConfirm: async () => {
+      try {
+        // Check if your API supports bulk delete, otherwise delete individually
+        await Promise.all(
+          notifications.map(notif => api.delete(`/api/notifications/${notif.id}/`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          }))
+        );
+        
+        setNotifications([]);
+        setUnreadCount(0);
+        
+        toast({
+          title: 'Inbox cleared',
+          description: 'All notifications have been removed',
+          status: 'success',
+          duration: 2000,
+          isClosable: true,
+        });
+      } catch (error) {
+        console.error('Error clearing notifications:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to clear notifications',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    }
+  });
 };
   useEffect(() => {
     if (accessToken) {
@@ -301,6 +329,7 @@ const clearAllNotifications = async () => {
   };
 
   return (
+    <>
     <Menu 
       isOpen={isNotificationsOpen} 
       onClose={onNotificationsClose}
@@ -460,7 +489,7 @@ const clearAllNotifications = async () => {
                       borderColor={borderColor}
                     >
                       
-                      {getNotificationIcon(notification.type,{size:24})}
+                      {getNotificationIcon(notification.type)}
                       
                     </Center>
                     
@@ -535,6 +564,16 @@ const clearAllNotifications = async () => {
         </Box>
       </MenuList>
     </Menu>
+
+    <ConfirmationModal
+      isOpen={isConfirmOpen}
+      onClose={onConfirmClose}
+      title={confirmConfig.title}
+      message={confirmConfig.message}
+      onConfirm={confirmConfig.onConfirm}
+      colorScheme={confirmConfig.colorScheme}
+    />
+  </>
   );
 };
 const Navbar = () => {

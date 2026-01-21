@@ -160,6 +160,8 @@ const Services = () => {
   const textColor = useColorModeValue('gray.600', 'gray.300');
   const headingColor = useColorModeValue('gray.800', 'white');
   const accentColor = useColorModeValue('blue.500', 'blue.300');
+  const [isAssetDropdownOpen, setIsAssetDropdownOpen] = useState(false);
+const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
   // Modals
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
@@ -200,6 +202,10 @@ const Services = () => {
     priority: 'medium',
     estimated_duration: 2,
     status: 'pending',
+    asset_search: '',
+    user_search: '',
+    asset_display: '',
+    user_display: '' 
   });
 
   // Stats
@@ -263,15 +269,15 @@ const Services = () => {
 
   const fetchServiceUsers = async () => {
     try {
-      const response = await api.get(`${API_BASE_URL}/api/users/`);
-      const rawData = Array.isArray(response.data) ? response.data : (response.data.results || []);
-      const filteredUsers = rawData
-        .filter(user => user.role === 'service_user' || user.role === 'technician' || user.role === 'engineer')
+      const response = await api.get(`${API_BASE_URL}/api/users/assignable/`);
+      const rawData = response.data || [];
+      const sortedUsers = rawData
         .map(user => ({
           ...user,
           name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email
-        }));
-      setServiceUsers(filteredUsers);
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      setServiceUsers(sortedUsers);
     } catch (error) {
       console.error('Error fetching service users:', error);
       // Fallback mock data
@@ -280,7 +286,7 @@ const Services = () => {
         { id: 2, name: 'Sarah Engineer', email: 'sarah@example.com', role: 'engineer' },
         { id: 3, name: 'Mike Support', email: 'mike@example.com', role: 'technician' },
         { id: 4, name: 'Lisa Manager', email: 'lisa@example.com', role: 'manager' },
-      ]);
+      ].sort((a, b) => a.name.localeCompare(b.name)));
     }
   };
 
@@ -888,22 +894,22 @@ const Services = () => {
                         <Td>
                           {service.service_user ? (
                             <HStack>
-                              <Avatar size="sm" name={service.service_user.name} />
-                              <Text fontSize="sm">{service.service_user.name}</Text>
+                              <Avatar size="xs" name={service.service_user.name} />
+                              <Text fontSize="sm">{service.service_user.first_name} {service.service_user.last_name}</Text>
                             </HStack>
                           ) : (
                             <Text color={textColor} fontSize="sm">Unassigned</Text>
                           )}
                         </Td>
                         <Td>
-                          <Tooltip label={service.remarks}>
+                          { service.remarks ? (<Tooltip label={service.remarks}>
                             <Text noOfLines={1} maxW="200px">
                               {service.remarks}
                             </Text>
-                          </Tooltip>
+                          </Tooltip>) : <Text fontStyle={"italic"} color={"gray.500"}>No Remark</Text>}
                         </Td>
                         <Td>
-                        {service.serviced_at && (
+                        {service.serviced_at ? (
                           <VStack align="start" spacing={1}>
                              <Text>
                               {format(parseISO(service.serviced_at), 'MMM dd, yyyy')}
@@ -912,7 +918,7 @@ const Services = () => {
                               {format(parseISO(service.serviced_at), 'hh:mm a')}
                             </Text> 
                           </VStack>
-                        )}</Td>
+                        ): <Text fontStyle={"italic"} color={"gray.500"} >not serviced</Text>}</Td>
                         <Td>{getStatusBadge(service.status)}</Td>
                         <Td>
                           <HStack spacing={1}>
@@ -927,7 +933,7 @@ const Services = () => {
                               />
                             </Tooltip>
                             <Tooltip label="Edit">
-                              <IconButton
+                              {!(userRole == "service_user" && service.service_user.id != userdata.id) && <IconButton
                                 icon={<FiEdit />}
                                 size="sm"
                                 variant="ghost"
@@ -936,7 +942,7 @@ const Services = () => {
                                   setSelectedService(service);
                                   onEditOpen();
                                 }}
-                              />
+                              />}
                             </Tooltip>
                             <Tooltip label="Delete">
                               <IconButton
@@ -965,132 +971,247 @@ const Services = () => {
 
         {/* Create Service Modal */}
         <Modal isOpen={isCreateOpen} onClose={onCreateClose} size="xl">
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>Create New Service Request</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              <VStack spacing={6}>
-                <Grid templateColumns="repeat(2, 1fr)" gap={4} width="100%">
-                  <FormControl isRequired>
-                    <FormLabel>Asset</FormLabel>
-                    <Select
-                      name="asset_id"
-                      value={formData.asset_id}
-                      onChange={handleInputChange}
-                      placeholder="Select asset"
-                    >
-                      {assets.map(asset => (
-                        <option key={asset.id} value={asset.id}>
-                          {asset.asset_id} ({asset.asset_name})
-                        </option>
-                      ))}
-                    </Select>
-                  </FormControl>
+  <ModalOverlay />
+  <ModalContent>
+    <ModalHeader>Create New Service Request</ModalHeader>
+    <ModalCloseButton />
+    <ModalBody>
+      <VStack spacing={6}>
+        <Grid templateColumns="repeat(2, 1fr)" gap={4} width="100%">
+          {/* Asset - Searchable Dropdown */}
+          <FormControl isRequired>
+            <FormLabel>Asset</FormLabel>
+            <Box position="relative">
+              <Input
+                placeholder="Search assets..."
+                value={formData.asset_display || ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    asset_search: value,
+                    asset_display: value
+                  }));
+                  setIsAssetDropdownOpen(true);
+                }}
+                onFocus={() => setIsAssetDropdownOpen(true)}
+                onBlur={() => {
+                  // Use requestAnimationFrame to ensure click event fires first
+                  requestAnimationFrame(() => {
+                    setTimeout(() => setIsAssetDropdownOpen(false), 200);
+                  });
+                }}
+              />
+              {isAssetDropdownOpen && (
+                <Box
+                  position="absolute"
+                  top="100%"
+                  left={0}
+                  right={0}
+                  bg="white"
+                  border="1px solid"
+                  borderColor="gray.200"
+                  borderRadius="md"
+                  zIndex={10}
+                  maxH="200px"
+                  overflowY="auto"
+                  mt={1}
+                  boxShadow="lg"
+                >
+                  {assets
+                    .filter(asset => {
+                      if (!formData.asset_search) return true;
+                      const searchTerm = formData.asset_search.toLowerCase();
+                      return (
+                        asset.asset_id.toLowerCase().includes(searchTerm) ||
+                        asset.asset_name.toLowerCase().includes(searchTerm)
+                      );
+                    })
+                    .map(asset => (
+                      <Box
+                        key={asset.id}
+                        p={2}
+                        _hover={{ bg: "gray.100", cursor: "pointer" }}
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // Prevent input blur
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            asset_id: asset.id,
+                            asset_display: `${asset.asset_id} (${asset.asset_name})`,
+                            asset_search: ""
+                          }));
+                          setIsAssetDropdownOpen(false);
+                        }}
+                      >
+                        {asset.asset_id} ({asset.asset_name})
+                      </Box>
+                    ))}
+                </Box>
+              )}
+              <Input type="hidden" name="asset_id" value={formData.asset_id} />
+            </Box>
+          </FormControl>
 
-                  <FormControl isRequired>
-                    <FormLabel>Service Type</FormLabel>
-                    <Select
-                      name="service_type"
-                      value={formData.service_type}
-                      onChange={handleInputChange}
-                    >
-                      <option value="maintenance">Preventive Maintenance</option>
-                      <option value="repair">Repair</option>
-                      <option value="inspection">Inspection</option>
-                      <option value="calibration">Calibration</option>
-                      <option value="installation">Installation</option>
-                      <option value="upgrade">Upgrade</option>
-                    </Select>
-                  </FormControl>
+          <FormControl isRequired>
+            <FormLabel>Service Type</FormLabel>
+            <Select
+              name="service_type"
+              value={formData.service_type}
+              onChange={handleInputChange}
+            >
+              <option value="maintenance">Preventive Maintenance</option>
+              <option value="repair">Repair</option>
+              <option value="inspection">Inspection</option>
+              <option value="calibration">Calibration</option>
+              <option value="installation">Installation</option>
+              <option value="upgrade">Upgrade</option>
+            </Select>
+          </FormControl>
 
-                  <FormControl isRequired>
-                    <FormLabel>Priority</FormLabel>
-                    <Select
-                      name="priority"
-                      value={formData.priority}
-                      onChange={handleInputChange}
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="critical">Critical</option>
-                    </Select>
-                  </FormControl>
+          <FormControl isRequired>
+            <FormLabel>Priority</FormLabel>
+            <Select
+              name="priority"
+              value={formData.priority}
+              onChange={handleInputChange}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </Select>
+          </FormControl>
 
-                  <FormControl>
-                    <FormLabel>Assign To</FormLabel>
-                    <Select
-                      name="service_user"
-                      value={formData.service_user}
-                      onChange={handleInputChange}
-                      placeholder="Select technician"
-                    >
-                      {serviceUsers.map(user => (
-                        <option key={user.id} value={user.id}>
-                          {user.name} ({user.role})
-                        </option>
-                      ))}
-                    </Select>
-                  </FormControl>
+          {/* Assign To - Searchable Dropdown */}
+          <FormControl>
+            <FormLabel>Assign To</FormLabel>
+            <Box position="relative">
+              <Input
+                placeholder="Search technicians..."
+                value={formData.user_display || ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    user_search: value,
+                    user_display: value
+                  }));
+                  setIsUserDropdownOpen(true);
+                }}
+                onFocus={() => setIsUserDropdownOpen(true)}
+                onBlur={() => {
+                  requestAnimationFrame(() => {
+                    setTimeout(() => setIsUserDropdownOpen(false), 200);
+                  });
+                }}
+              />
+              {isUserDropdownOpen && (
+                <Box
+                  position="absolute"
+                  top="100%"
+                  left={0}
+                  right={0}
+                  bg="white"
+                  border="1px solid"
+                  borderColor="gray.200"
+                  borderRadius="md"
+                  zIndex={10}
+                  maxH="200px"
+                  overflowY="auto"
+                  mt={1}
+                  boxShadow="lg"
+                >
+                  {serviceUsers
+                    .filter(user => {
+                      if (!formData.user_search) return true;
+                      const searchTerm = formData.user_search.toLowerCase();
+                      return (
+                        user.name.toLowerCase().includes(searchTerm) ||
+                        user.role.toLowerCase().includes(searchTerm)
+                      );
+                    })
+                    .map(user => (
+                      <Box
+                        key={user.id}
+                        p={2}
+                        _hover={{ bg: "gray.100", cursor: "pointer" }}
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // Prevent input blur
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            service_user: user.id,
+                            user_display: `${user.name} (${user.role})`,
+                            user_search: ""
+                          }));
+                          setIsUserDropdownOpen(false);
+                        }}
+                      >
+                        {user.name} ({user.role})
+                      </Box>
+                    ))}
+                </Box>
+              )}
+              <Input type="hidden" name="service_user" value={formData.service_user} />
+            </Box>
+          </FormControl>
 
-                  <FormControl>
-                    <FormLabel>Estimated Duration (hours)</FormLabel>
-                    <Select
-                      name="estimated_duration"
-                      value={formData.estimated_duration}
-                      onChange={handleInputChange}
-                    >
-                      <option value={1}>1 hour</option>
-                      <option value={2}>2 hours</option>
-                      <option value={4}>4 hours</option>
-                      <option value={8}>8 hours (1 day)</option>
-                      <option value={16}>16 hours (2 days)</option>
-                      <option value={24}>24 hours (3 days)</option>
-                    </Select>
-                  </FormControl>
+          <FormControl>
+            <FormLabel>Estimated Duration (hours)</FormLabel>
+            <Select
+              name="estimated_duration"
+              value={formData.estimated_duration}
+              onChange={handleInputChange}
+            >
+              <option value={1}>1 hour</option>
+              <option value={2}>2 hours</option>
+              <option value={4}>4 hours</option>
+              <option value={8}>8 hours (1 day)</option>
+              <option value={16}>16 hours (2 days)</option>
+              <option value={24}>24 hours (3 days)</option>
+            </Select>
+          </FormControl>
 
-                  <FormControl>
-                    <FormLabel>Initial Status</FormLabel>
-                    <Select
-                      name="status"
-                      value={formData.status}
-                      onChange={handleInputChange}
-                    >
-                      <option value="closed">Closed</option>
-                      <option value="open">Open</option>
-                      <option value="on_hold">On Hold</option>
-                    </Select>
-                  </FormControl>
-                </Grid>
+          <FormControl>
+            <FormLabel>Initial Status</FormLabel>
+            <Select
+              name="status"
+              value={formData.status}
+              onChange={handleInputChange}
+            >
+              <option value="closed">Closed</option>
+              <option value="open">Open</option>
+              <option value="on_hold">On Hold</option>
+            </Select>
+          </FormControl>
+        </Grid>
 
-                <FormControl isRequired width="100%">
-                  <FormLabel>Remarks / Description</FormLabel>
-                  <Textarea
-                    name="remarks"
-                    value={formData.remarks}
-                    onChange={handleInputChange}
-                    placeholder="Describe the service required, any specific issues, or special instructions..."
-                    rows={4}
-                  />
-                </FormControl>
-              </VStack>
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onCreateClose}>
-                Cancel
-              </Button>
-              <Button 
-                colorScheme="blue" 
-                onClick={handleCreateService}
-                isLoading={isSubmitting}
-                loadingText="Creating..."
-              >
-                Create Service Request
-              </Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
+        <FormControl isRequired width="100%">
+          <FormLabel>Remarks / Description</FormLabel>
+          <Textarea
+            name="remarks"
+            value={formData.remarks}
+            onChange={handleInputChange}
+            placeholder="Describe the service required, any specific issues, or special instructions..."
+            rows={4}
+          />
+        </FormControl>
+      </VStack>
+    </ModalBody>
+    <ModalFooter>
+      <Button variant="ghost" mr={3} onClick={onCreateClose}>
+        Cancel
+      </Button>
+      <Button 
+        colorScheme="blue" 
+        onClick={handleCreateService}
+        isLoading={isSubmitting}
+        loadingText="Creating..."
+      >
+        Create Service Request
+      </Button>
+    </ModalFooter>
+  </ModalContent>
+</Modal>
 
         {/* Update Service Modal */}
         <UpdateService
