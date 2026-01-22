@@ -17,6 +17,7 @@ import Services from './Pages/Services';
 import ResetPassword from './Pages/ResetPassword';
 import { useAuth } from './context/AuthContext';
 import { ClassNames } from '@emotion/react';
+import Profile from './Pages/Profile';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -54,6 +55,7 @@ function App() {
           <Route path="/viewer" element={<ProtectedRoute><Amc/></ProtectedRoute>}/>
           <Route path="/settings" element={<ProtectedRoute><Settings/></ProtectedRoute>}/>
           <Route path="/services" element={<ProtectedRoute><Services/></ProtectedRoute>}/>
+          <Route path="/profile" element={<ProtectedRoute><Profile/></ProtectedRoute>}/>
         </Routes>
       </Box>
     </>
