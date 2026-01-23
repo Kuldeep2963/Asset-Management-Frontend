@@ -295,7 +295,12 @@ const AMC = () => {
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const [activeTab, setActiveTab] = useState(0);
+  const [mainTab, setMainTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [contracts, setContracts] = useState([]);
   const [vendors, setVendors] = useState([]);
@@ -313,7 +318,7 @@ const AMC = () => {
   const [sortOrder, setSortOrder] = useState("asc");
   const [selectedAssets, setSelectedAssets] = useState([]);
   const [bulkFile, setBulkFile] = useState(null);
-
+  const userData = JSON.parse(sessionStorage.getItem('user')) || JSON.parse(localStorage.getItem('user'));
   const [formData, setFormData] = useState({
     contract_type: "AMC",
     vendor: "",
@@ -326,6 +331,7 @@ const AMC = () => {
   });
 
   const [vendorFormData, setVendorFormData] = useState({
+    organization : userData.organization.id,
     name: "",
     email: "",
     phone: "",
@@ -756,9 +762,19 @@ const AMC = () => {
 
   const handleTabChange = (index) => {
     setActiveTab(index);
-    const statuses = ["all", "active", "expiring", "expired", "vendors"];
+    const statuses = ["all", "active", "expiring", "expired"];
     if (index < 4) {
       setFilterStatus(statuses[index]);
+    }
+  };
+
+  const handleMainTabChange = (index) => {
+    setMainTab(index);
+    if (index === 1) {
+      setFilterStatus("vendors");
+    } else {
+      const statuses = ["all", "active", "expiring", "expired"];
+      setFilterStatus(statuses[activeTab]);
     }
   };
 
@@ -767,8 +783,13 @@ const AMC = () => {
     setFilterStatus(status);
     const statuses = ["all", "active", "expiring", "expired", "vendors"];
     const index = statuses.indexOf(status);
-    if (index !== -1 && index < 4) {
-      setActiveTab(index);
+    if (index !== -1) {
+      if (index < 4) {
+        setMainTab(0);
+        setActiveTab(index);
+      } else {
+        setMainTab(1);
+      }
     }
   };
 
@@ -847,6 +868,7 @@ const AMC = () => {
 
   const resetVendorForm = () => {
     setVendorFormData({
+      
       name: "",
       email: "",
       phone: "",
@@ -1001,15 +1023,7 @@ const AMC = () => {
             </Button>
           </Wrap>
           <Wrap spacing={{ base: 5, md: 5 }}>
-            <Button
-              size={"sm"}
-              leftIcon={<FiDownload />}
-              variant="outline"
-              colorScheme="gray"
-            >
-              Export Data
-            </Button>
-            <Button size={"sm"} leftIcon={<FiPrinter />} variant="outline">
+            <Button size={"sm"} colorScheme="green" leftIcon={<FiPrinter />} variant="outline" onClick={handlePrint}>
               Print Report
             </Button>
           </Wrap>
@@ -1645,19 +1659,11 @@ const AMC = () => {
               </HStack>
             </MenuButton>
             <MenuList>
-              <MenuItem icon={<FaRegFileExcel />}>Export as Excel</MenuItem>
-              <MenuItem icon={<FaRegFilePdf />}>Export as PDF</MenuItem>
-              <MenuItem icon={<FiFileText />}>Export as CSV</MenuItem>
+              <MenuItem icon={<FaRegFileExcel />} onClick={handleExportData}>Export as Excel</MenuItem>
+              <MenuItem icon={<FaRegFilePdf />} onClick={handleExportData}>Export as PDF</MenuItem>
+
             </MenuList>
           </Menu>
-          <Button
-            size={"sm"}
-            leftIcon={<FiPlus />}
-            colorScheme="blue"
-            onClick={onCreateOpen}
-          >
-            New Contract
-          </Button>
         </HStack>
       </Flex>
 
@@ -1774,137 +1780,142 @@ const AMC = () => {
         </CardHeader>
 
         <CardBody>
-          <Tabs
-            index={activeTab}
-            colorScheme="blue"
-            onChange={handleTabChange}
-            mb={4}
-          >
-            <TabList gap={{ base: 0, md: 8 }} overflowX="auto" pb={2}>
-              <Tab>
-                <Icon as={FiFileText} mr={2} />
-                <Text>All</Text>
-                <Badge borderRadius="full" ml={2} colorScheme="blue">
-                  {contracts.length}
-                </Badge>
-              </Tab>
-              <Tab>
-                <Icon as={FiCheckCircle} mr={2} />
-                <Text display={{ base: "none", md: "block" }}>Active</Text>
-                <Badge borderRadius="full" ml={2} colorScheme="green">
-                  {stats.active}
-                </Badge>
-              </Tab>
-              <Tab>
-                <Icon as={FiAlertTriangle} mr={2} />
-                <Text display={{ base: "none", md: "block" }}>
-                  Expiring Soon
-                </Text>
-                <Badge borderRadius="full" ml={2} colorScheme="orange">
-                  {stats.expiring}
-                </Badge>
-              </Tab>
-              <Tab>
-                <Icon as={FiXCircle} mr={2} />
-                <Text display={{ base: "none", md: "block" }}>Expired</Text>
-                <Badge borderRadius="full" ml={2} colorScheme="red">
-                  {stats.expired}
-                </Badge>
-              </Tab>
-              <Tab>
-                <Icon as={FiUsers} mr={2} />
-                Vendors
-                <Badge borderRadius="full" ml={2} colorScheme="purple">
-                  {vendors.length}
-                </Badge>
-              </Tab>
+          <Tabs index={mainTab} onChange={handleMainTabChange} variant="enclosed" colorScheme="blue">
+            <TabList mb={4}>
+              <Tab fontWeight="bold">Contracts</Tab>
+              <Tab fontWeight="bold">Vendors</Tab>
             </TabList>
             <TabPanels>
-              <TabPanel p={0} pt={4}>
-                {renderContractList()}
+              <TabPanel p={0}>
+                <Tabs
+                  index={activeTab}
+                  colorScheme="blue"
+                  onChange={handleTabChange}
+                  mb={4}
+                >
+                  <TabList gap={{ base: 0, md: 8 }} overflowX="auto" pb={2}>
+                    <Tab>
+                      <Icon as={FiFileText} mr={2} />
+                      <Text>All</Text>
+                      <Badge borderRadius="full" ml={2} colorScheme="blue">
+                        {contracts.length}
+                      </Badge>
+                    </Tab>
+                    <Tab>
+                      <Icon as={FiCheckCircle} mr={2} />
+                      <Text display={{ base: "none", md: "block" }}>Active</Text>
+                      <Badge borderRadius="full" ml={2} colorScheme="green">
+                        {stats.active}
+                      </Badge>
+                    </Tab>
+                    <Tab>
+                      <Icon as={FiAlertTriangle} mr={2} />
+                      <Text display={{ base: "none", md: "block" }}>
+                        Expiring Soon
+                      </Text>
+                      <Badge borderRadius="full" ml={2} colorScheme="orange">
+                        {stats.expiring}
+                      </Badge>
+                    </Tab>
+                    <Tab>
+                      <Icon as={FiXCircle} mr={2} />
+                      <Text display={{ base: "none", md: "block" }}>Expired</Text>
+                      <Badge borderRadius="full" ml={2} colorScheme="red">
+                        {stats.expired}
+                      </Badge>
+                    </Tab>
+                  </TabList>
+                  <TabPanels>
+                    <TabPanel p={0} pt={4}>
+                      {renderContractList()}
+                    </TabPanel>
+
+                    <TabPanel p={0} pt={4}>
+                      {renderContractList()}
+                    </TabPanel>
+
+                    <TabPanel p={0} pt={4}>
+                      {renderContractList()}
+                    </TabPanel>
+
+                    <TabPanel p={0} pt={4}>
+                      {renderContractList()}
+                    </TabPanel>
+                  </TabPanels>
+                </Tabs>
               </TabPanel>
 
-              <TabPanel p={0} pt={4}>
-                {renderContractList()}
-              </TabPanel>
+              <TabPanel p={0}>
+                <Box pt={4}>
+                  <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+                    {vendors.map((vendor) => (
+                      <Card
+                        key={vendor.id}
+                        bg={cardBg}
+                        border="1px"
+                        borderColor={borderColor}
+                      >
+                        <CardBody>
+                          <VStack align="stretch" spacing={3}>
+                            <HStack justify="space-between">
+                              <Avatar name={vendor.name} size="md" />
+                              <Badge
+                                colorScheme={vendor.is_active ? "green" : "gray"}
+                              >
+                                {vendor.is_active ? "Active" : "Inactive"}
+                              </Badge>
+                            </HStack>
 
-              <TabPanel p={0} pt={4}>
-                {renderContractList()}
-              </TabPanel>
+                            <VStack align="stretch" spacing={1}>
+                              <Heading size="md">{vendor.name}</Heading>
+                              <Text color={textColor} fontSize="sm">
+                                {
+                                  contracts.filter((c) => c.vendor === vendor.id)
+                                    .length
+                                }{" "}
+                                contracts
+                              </Text>
+                            </VStack>
 
-              <TabPanel p={0} pt={4}>
-                {renderContractList()}
-              </TabPanel>
+                            <Divider />
 
-              <TabPanel p={0} pt={4}>
-                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                  {vendors.map((vendor) => (
-                    <Card
-                      key={vendor.id}
-                      bg={cardBg}
-                      border="1px"
-                      borderColor={borderColor}
-                    >
-                      <CardBody>
-                        <VStack align="stretch" spacing={3}>
-                          <HStack justify="space-between">
-                            <Avatar name={vendor.name} size="md" />
-                            <Badge
-                              colorScheme={vendor.is_active ? "green" : "gray"}
+                            <VStack align="stretch" spacing={2}>
+                              {vendor.email && (
+                                <HStack>
+                                  <Icon as={FiMail} color={textColor} />
+                                  <Text fontSize="sm">{vendor.email}</Text>
+                                </HStack>
+                              )}
+                              {vendor.phone && (
+                                <HStack>
+                                  <Icon as={FiPhone} color={textColor} />
+                                  <Text fontSize="sm">{vendor.phone}</Text>
+                                </HStack>
+                              )}
+                              {vendor.address && (
+                                <HStack align="start">
+                                  <Icon as={FiMapPin} color={textColor} mt={1} />
+                                  <Text fontSize="sm" noOfLines={2}>
+                                    {vendor.address}
+                                  </Text>
+                                </HStack>
+                              )}
+                            </VStack>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              leftIcon={<FiEye />}
+                              onClick={() => handleViewVendor(vendor)}
                             >
-                              {vendor.is_active ? "Active" : "Inactive"}
-                            </Badge>
-                          </HStack>
-
-                          <VStack align="stretch" spacing={1}>
-                            <Heading size="md">{vendor.name}</Heading>
-                            <Text color={textColor} fontSize="sm">
-                              {
-                                contracts.filter((c) => c.vendor === vendor.id)
-                                  .length
-                              }{" "}
-                              contracts
-                            </Text>
+                              View Details
+                            </Button>
                           </VStack>
-
-                          <Divider />
-
-                          <VStack align="stretch" spacing={2}>
-                            {vendor.email && (
-                              <HStack>
-                                <Icon as={FiMail} color={textColor} />
-                                <Text fontSize="sm">{vendor.email}</Text>
-                              </HStack>
-                            )}
-                            {vendor.phone && (
-                              <HStack>
-                                <Icon as={FiPhone} color={textColor} />
-                                <Text fontSize="sm">{vendor.phone}</Text>
-                              </HStack>
-                            )}
-                            {vendor.address && (
-                              <HStack align="start">
-                                <Icon as={FiMapPin} color={textColor} mt={1} />
-                                <Text fontSize="sm" noOfLines={2}>
-                                  {vendor.address}
-                                </Text>
-                              </HStack>
-                            )}
-                          </VStack>
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            leftIcon={<FiEye />}
-                            onClick={() => handleViewVendor(vendor)}
-                          >
-                            View Details
-                          </Button>
-                        </VStack>
-                      </CardBody>
-                    </Card>
-                  ))}
-                </SimpleGrid>
+                        </CardBody>
+                      </Card>
+                    ))}
+                  </SimpleGrid>
+                </Box>
               </TabPanel>
             </TabPanels>
           </Tabs>
@@ -1918,7 +1929,7 @@ const AMC = () => {
         size="4xl"
         scrollBehavior="inside"
       >
-        <ModalOverlay backdropFilter="blur(10px)" />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader>
             <Heading size="md">Create New Maintenance Contract</Heading>
@@ -2100,7 +2111,7 @@ const AMC = () => {
         onClose={onVendorCreateClose}
         size="2xl"
       >
-        <ModalOverlay />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader>Add New Vendor</ModalHeader>
           <ModalCloseButton />
@@ -2178,7 +2189,7 @@ const AMC = () => {
 
       {/* Bulk Upload Modal */}
       <Modal isOpen={isBulkUploadOpen} onClose={onBulkUploadClose}>
-        <ModalOverlay />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader>Bulk Upload Contracts</ModalHeader>
           <ModalCloseButton />
@@ -2619,7 +2630,7 @@ const AMC = () => {
               </ModalBody>
               <ModalFooter borderTop="1px" borderColor={borderColor} pt={4}>
                 <HStack spacing={3}>
-                  <Button variant="outline" leftIcon={<FiPrinter />}>
+                  <Button variant="outline" leftIcon={<FiPrinter />} onClick={handlePrint}>
                     Print
                   </Button>
                   <Button variant="outline" leftIcon={<FiShare2 />}>

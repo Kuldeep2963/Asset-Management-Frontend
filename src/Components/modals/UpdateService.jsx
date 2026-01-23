@@ -83,7 +83,7 @@ const UpdateService = ({ service, isOpen, onClose, onSuccess, serviceUsers = [] 
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
-      <ModalOverlay />
+      <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent>
         <ModalHeader>Update Service</ModalHeader>
         <ModalCloseButton />

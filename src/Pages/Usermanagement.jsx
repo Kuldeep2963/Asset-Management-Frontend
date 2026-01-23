@@ -2918,7 +2918,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
       {/* Modal Forms - Updated with real form handlers */}
       {/* Add Organization Modal */}
       <Modal isOpen={isOrgOpen} onClose={onOrgClose} size="lg">
-        <ModalOverlay />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader bg="teal.600" color="white">
             {isEditingOrg ? "Edit Organization" : "Add New Organization"}
@@ -2958,7 +2958,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
         onClose={onAdminClose}
         size={{ base: "sm", md: "lg" }}
       >
-        <ModalOverlay />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader bg="teal.600" color="white">
             {isEditingAdmin ? "Edit Organization Admin" : "Add Organization Admin"}
@@ -3060,7 +3060,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
         onClose={onUnitClose}
         size={{ base: "sm", md: "lg" }}
       >
-        <ModalOverlay />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader bg="teal.600" color="white">
             {isEditingUnit ? "Edit Unit" : "Add New Unit"}
@@ -3097,7 +3097,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
         onClose={onUnitAdminClose}
         size={{ base: "sm", md: "lg" }}
       >
-        <ModalOverlay />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader bg="teal.600" color="white">
             {isEditingUnitAdmin ? "Edit Unit Administrator" : "Add Unit Administrator"}
@@ -3225,7 +3225,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
         size={{ base: "sm", md: "lg" }}
         scrollBehavior="inside"
       >
-        <ModalOverlay />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader borderTopRadius={"md"} bg="teal.600" color="white">
             {isEditingUser ? "Edit User" : "Add New User"}
@@ -3361,7 +3361,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
         onClose={onDepartmentClose}
         size={{ base: "sm", md: "lg" }}
       >
-        <ModalOverlay />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader bg="teal.600" color="white">
             {isEditingDept ? "Edit Department" : "Add Department"}

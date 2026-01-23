@@ -80,7 +80,7 @@ const AssignContractModal = ({ asset, isOpen, onClose, onSuccess }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <ModalOverlay />
+      <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent>
         <ModalHeader>Assign AMC / CMC</ModalHeader>
         <ModalCloseButton />

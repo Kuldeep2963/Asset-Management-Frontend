@@ -971,7 +971,7 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
         {/* Create Service Modal */}
         <Modal isOpen={isCreateOpen} onClose={onCreateClose} size="xl">
-  <ModalOverlay />
+  <ModalOverlay backdropFilter="blur(4px)" />
   <ModalContent>
     <ModalHeader>Create New Service Request</ModalHeader>
     <ModalCloseButton />

@@ -1050,7 +1050,7 @@ const PlanManagement = () => {
 
       {/* Create Plan Modal */}
       <Modal isOpen={isCreateOpen} onClose={onCreateClose} size="6xl">
-        <ModalOverlay />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader>
             <HStack>
@@ -1288,7 +1288,7 @@ const PlanManagement = () => {
 
       {/* Edit Plan Modal */}
       <Modal isOpen={isEditOpen} onClose={onEditClose} size="6xl">
-        <ModalOverlay />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader>
             <HStack>
@@ -1483,7 +1483,7 @@ const PlanManagement = () => {
 
       {/* Delete Confirmation Modal */}
       <Modal isOpen={isDeleteOpen} onClose={onDeleteClose} size="md">
-        <ModalOverlay />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader>Delete Plan</ModalHeader>
           <ModalCloseButton />

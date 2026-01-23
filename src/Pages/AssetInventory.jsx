@@ -44,6 +44,7 @@ import {
   FiMoreVertical,
   FiDownload,
   FiTool,
+  FiUpload,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -62,6 +63,7 @@ const AssetInventory = () => {
   const borderColor = useColorModeValue("gray.200", "gray.700");
   const textColor = useColorModeValue("gray.600", "gray.300");
   const headingColor = useColorModeValue("gray.800", "white");
+  const headerBg = useColorModeValue("gray.100", "gray.700");
 
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -226,6 +228,7 @@ const AssetInventory = () => {
             {canManageAssets && (
               <HStack spacing={4} >
               <Button 
+                leftIcon={<FiUpload/>}
                 size={"sm"} 
                 colorScheme="green" 
                 variant={"solid"}
@@ -404,20 +407,23 @@ const AssetInventory = () => {
 
                     {/* Desktop Table View */}
                     <Box
-                      overflowX="auto"
+                      overflowX={"hidden"}
                       overflowY="auto"
-                      maxHeight="650px"
+                      height="450px"
                       display={{ base: "none", md: "block" }}
+                      border="1px"
+                      borderColor={borderColor}
+                      borderRadius="md"
                     >
-                      <Table variant="simple">
+                      <Table variant="simple" >
                         <Thead>
                           <Tr>
-                            <Th position="sticky" top={0} bg="gray.200" zIndex={1} color={"gray.800"}>Asset ID</Th>
-                            <Th position="sticky" top={0} bg="gray.200" zIndex={1} color={"gray.800"}>Asset Name</Th>
-                            <Th position="sticky" top={0} bg="gray.200" zIndex={1} color={"gray.800"}>Type</Th>
-                            <Th position="sticky" top={0} bg="gray.200" zIndex={1} color={"gray.800"}>Category</Th>
-                            <Th position="sticky" top={0} bg="gray.200" zIndex={1} color={"gray.800"}>Status</Th>
-                            <Th position="sticky" top={0} bg="gray.200" zIndex={1} color={"gray.800"}>Actions</Th>
+                            <Th position="sticky" top={0} bg={headerBg} zIndex={10} color={headingColor}>Asset ID</Th>
+                            <Th position="sticky" top={0} bg={headerBg} zIndex={10} color={headingColor}>Asset Name</Th>
+                            <Th position="sticky" top={0} bg={headerBg} zIndex={10} color={headingColor}>Type</Th>
+                            <Th position="sticky" top={0} bg={headerBg} zIndex={10} color={headingColor}>Category</Th>
+                            <Th position="sticky" top={0} bg={headerBg} zIndex={10} color={headingColor}>Status</Th>
+                            <Th position="sticky" top={0} bg={headerBg} zIndex={10} color={headingColor}>Actions</Th>
                           </Tr>
                         </Thead>
                         <Tbody>

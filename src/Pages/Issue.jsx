@@ -1947,7 +1947,7 @@ const Issue = () => {
         size={{ base: "sm", md: "2xl" }}
         borderRadius="md"
       >
-        <ModalOverlay />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent maxH="80vh" display="flex" flexDirection="column">
           {/* Sticky Header */}
           <ModalHeader
@@ -2333,7 +2333,7 @@ const Issue = () => {
         isCentered
         blockScrollOnMount={false}
       >
-        <ModalOverlay />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent maxH="80vh" display="flex" flexDirection="column">
           {/* Sticky Header */}
           <ModalHeader
@@ -2971,7 +2971,7 @@ const Issue = () => {
 
       {/* QR Code Scanner Modal */}
       <Modal isOpen={isScannerOpen} onClose={onScannerClose} size="lg">
-        <ModalOverlay />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader>
             <Heading size="md">Scan Asset QR Code</Heading>

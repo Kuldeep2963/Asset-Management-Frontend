@@ -345,6 +345,74 @@ const Subscription = () => {
 
   return (
     <Container maxW="full" p={{ base: 4, md: 10 }} pt={{ base: 0, md: 10 }} mb={{base:14,md:0}}>
+      {/* Current Active Plan Card */}
+      {user?.organization?.plan && (
+        <Card mb={8} border="1px" maxW={"6xl"} justifySelf={"center"} borderColor={borderColor} bg={cardBg} shadow="sm">
+          <CardBody>
+            <Flex
+              direction={{ base: "column", md: "row" }}
+              justify="space-between"
+              align={{ base: "start", md: "center" }}
+              gap={4}
+            >
+              <HStack spacing={4}>
+                <Center
+                  p={3}
+                  borderRadius="lg"
+                  bg={user.organization.plan.is_expired ? "red.50" : "blue.50"}
+                  color={user.organization.plan.is_expired ? "red.500" : "blue.500"}
+                >
+                  <Icon as={FaCrown} boxSize={6} />
+                </Center>
+                <VStack align="start" spacing={0}>
+                  <Text fontSize="sm" fontWeight="bold" color="gray.500" textTransform="uppercase">
+                    Current Active Plan
+                  </Text>
+                  <Heading size="md" color={headingColor}>
+                    {user.organization.name} - {user.organization.plan.plan_name}
+                  </Heading>
+                </VStack>
+              </HStack>
+
+              <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={6} flex={1} maxW="3xl">
+                <VStack align={{ base: "start", md: "center" }} spacing={1}>
+                  <Text fontSize="xs" color="gray.500" fontWeight="bold">STATUS</Text>
+                  <Badge
+                    colorScheme={user.organization.plan.is_expired ? "red" : "green"}
+                    px={3}
+                    py={1}
+                    borderRadius="full"
+                  >
+                    {user.organization.plan.is_expired ? "EXPIRED" : "ACTIVE"}
+                  </Badge>
+                </VStack>
+
+                <VStack align={{ base: "start", md: "center" }} spacing={1}>
+                  <Text fontSize="xs" color="gray.500" fontWeight="bold">EXPIRY DATE</Text>
+                  <HStack>
+                    <Icon as={FaClock} color="gray.400" size="xs" />
+                    <Text fontWeight="semibold" color={textColor}>
+                      {user.organization.plan.expiry_date}
+                    </Text>
+                  </HStack>
+                </VStack>
+
+                <VStack align={{ base: "start", md: "center" }} spacing={1}>
+                  <Text fontSize="xs" color="gray.500" fontWeight="bold">REMAINING DAYS</Text>
+                  <Text
+                    fontWeight="bold"
+                    color={user.organization.plan.remaining_days <= 7 ? "orange.500" : "green.500"}
+                    fontSize="lg"
+                  >
+                    {user.organization.plan.remaining_days} Days
+                  </Text>
+                </VStack>
+              </SimpleGrid>
+            </Flex>
+          </CardBody>
+        </Card>
+      )}
+
       {/* Header */}
       <VStack spacing={6} textAlign="center" mb={8}>
         <Heading  size="xl" color={headingColor}>
@@ -616,7 +684,7 @@ const Subscription = () => {
 
       {/* FAQ Modal */}
       <Modal isOpen={isOpen} onClose={onClose} size="lg">
-        <ModalOverlay />
+        <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader color={headingColor}>
             <HStack>
