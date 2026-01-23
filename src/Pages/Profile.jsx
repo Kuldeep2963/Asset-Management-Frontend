@@ -188,7 +188,7 @@ const Profile = () => {
         >
           <Avatar
             size="2xl"
-            name={fullName || userData.email}
+            // name={fullName || userData.email}
             src={null}
             border="4px solid"
             borderColor={bgColor}
@@ -196,12 +196,11 @@ const Profile = () => {
             color="white"
             fontSize="3xl"
           >
-            {initials || userData.email[0].toUpperCase()}
           </Avatar>
           <Box ml={6} flex="1">
             <HStack spacing={4} alignItems="center">
               <Box>
-                <Heading size="xl">{fullName || 'User'}</Heading>
+                <Heading  size="xl">{fullName || 'User'}</Heading>
                 <Text fontSize="lg" color="gray.600" mt={1}>
                   {userData.email}
                 </Text>

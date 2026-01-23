@@ -560,7 +560,7 @@ const AMC = () => {
 
   const handleCreateContract = async () => {
     try {
-      await api.post(`${API_BASE_URL}/api/contracts/`, formData);
+      await api.post(`/api/contracts/`, formData);
       toast({
         title: "Success",
         description: "Maintenance contract has been created successfully",
@@ -588,7 +588,7 @@ const AMC = () => {
 
   const handleCreateVendor = async () => {
     try {
-      await api.post(`${API_BASE_URL}/api/vendors/`, vendorFormData);
+      await api.post(`/api/vendors/`, vendorFormData);
       toast({
         title: "Success",
         description: "Vendor has been created successfully",
@@ -631,7 +631,7 @@ const AMC = () => {
   const handleUpdateContract = async () => {
     try {
       await api.put(
-        `${API_BASE_URL}/api/contracts/${selectedContract.id}/`,
+        `/api/contracts/${selectedContract.id}/`,
         formData,
       );
       toast({
@@ -665,7 +665,7 @@ const AMC = () => {
       message: "Are you sure you want to delete this contract? This action cannot be undone.",
       onConfirm: async () => {
         try {
-          await api.delete(`${API_BASE_URL}/api/contracts/${contractId}/`);
+          await api.delete(`/api/contracts/${contractId}/`);
           toast({
             title: "Deleted",
             description: "Contract has been deleted successfully",
@@ -726,7 +726,7 @@ const AMC = () => {
     formData.append("file", bulkFile);
 
     try {
-      await api.post(`${API_BASE_URL}/api/contracts/bulk-upload/`, formData, {
+      await api.post(`/api/contracts/bulk-upload/`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
