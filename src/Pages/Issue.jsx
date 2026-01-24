@@ -1227,7 +1227,7 @@ const Issue = () => {
                   >
                     <option value="all">All Status</option>
                     <option value="open">Open</option>
-                    <option value="in-progress">In Progress</option>
+                    <option value="in_progress">In Progress</option>
                     <option value="assigned">Assigned</option>
                     <option value="resolved">Resolved</option>
                     <option value="pending">Pending</option>
@@ -2932,51 +2932,62 @@ const Issue = () => {
             )}
           </DrawerBody>
           <DrawerFooter borderTopWidth="1px">
-            <HStack spacing={3}>
-              <Button
-                size={{ base: "xs", md: "sm" }}
-                leftIcon={<FiMessageSquare />}
-                colorScheme="blue"
-                variant="solid"
-                onClick={() => {
-                  onDetailClose();
-                  handleOpenCommentModal(selectedIssue);
-                }}
-              >
-                <Text display={{ base: "none", md: "block" }}>Comment</Text>
-              </Button>
-              <Button
-                size={{ base: "xs", md: "sm" }}
-                leftIcon={<MdOutlineAssignment />}
-                colorScheme="blue"
-                onClick={() => {
-                  onDetailClose();
-                  onAssignOpen();
-                }}
-              >
-                Assign
-              </Button>
-              <Button
-                size={{ base: "xs", md: "sm" }}
-                leftIcon={<FiCheckCircle />}
-                colorScheme="green"
-                onClick={() => {
-                  const updatedIssues = issues.map((issue) =>
-                    issue.id === selectedIssue.id
-                      ? {
-                          ...issue,
-                          status: "resolved",
-                          actualResolution: format(new Date(), "yyyy-MM-dd"),
-                        }
-                      : issue,
-                  );
-                  setIssues(updatedIssues);
-                  onDetailClose();
-                }}
-              >
-                Mark Resolved
-              </Button>
-            </HStack>
+            {selectedIssue && (
+              <HStack spacing={3}>
+                <Button
+                  size={{ base: "xs", md: "sm" }}
+                  leftIcon={<FiMessageSquare />}
+                  colorScheme="blue"
+                  variant="solid"
+                  onClick={() => {
+                    onDetailClose();
+                    handleOpenCommentModal(selectedIssue);
+                  }}
+                >
+                  <Text display={{ base: "none", md: "block" }}>Comment</Text>
+                </Button>
+                {(can_comment_and_can_assign ||
+                  (selectedIssue.assigned_to === null &&
+                    userRole === "service_user")) && (
+                  <HStack>
+                    <Button
+                      size={{ base: "xs", md: "sm" }}
+                      leftIcon={<MdOutlineAssignment />}
+                      colorScheme="blue"
+                      onClick={() => {
+                        onDetailClose();
+                        onAssignOpen();
+                      }}
+                    >
+                      Assign
+                    </Button>
+                    <Button
+                      size={{ base: "xs", md: "sm" }}
+                      leftIcon={<FiCheckCircle />}
+                      colorScheme="green"
+                      onClick={() => {
+                        const updatedIssues = issues.map((issue) =>
+                          issue.id === selectedIssue.id
+                            ? {
+                                ...issue,
+                                status: "resolved",
+                                actualResolution: format(
+                                  new Date(),
+                                  "yyyy-MM-dd",
+                                ),
+                              }
+                            : issue,
+                        );
+                        setIssues(updatedIssues);
+                        onDetailClose();
+                      }}
+                    >
+                      Mark Resolved
+                    </Button>
+                  </HStack>
+                )}
+              </HStack>
+            )}
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
