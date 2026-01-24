@@ -85,12 +85,12 @@ const LoginPage = () => {
         refresh: data.refresh || null,
       };
 
-      // localStorage.setItem("access", res.data.access);
-      // localStorage.setItem("refresh", res.data.refresh);
+      // localStorage.setItem("access", data.access);
+      // localStorage.setItem("refresh", data.refresh);
       const accessToken = tokenData.access;
        console.log(data);
       // Fetch user details with the token
-      const userResponse = await api.get('/api/me/', {
+      const userResponse = await api.get('api/me/', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
         },

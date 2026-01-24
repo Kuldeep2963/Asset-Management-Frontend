@@ -140,7 +140,8 @@ const Subscription = () => {
     try {
       setIsLoading(true);
       const response = await api.get('/api/plans/');
-      const activePlans = response.data.filter(plan => plan.is_active);
+      const plansData = response.data.results || response.data || [];
+      const activePlans = Array.isArray(plansData) ? plansData.filter(plan => plan.is_active) : [];
       setPlans(activePlans);
       if (activePlans.length > 0 && !selectedPlan) {
         setSelectedPlan(activePlans[0].id);
@@ -347,7 +348,7 @@ const Subscription = () => {
     <Container maxW="full" p={{ base: 4, md: 10 }} pt={{ base: 0, md: 10 }} mb={{base:14,md:0}}>
       {/* Current Active Plan Card */}
       {user?.organization?.plan && (
-        <Card mb={8} border="1px" maxW={"6xl"} justifySelf={"center"} borderColor={borderColor} bg={cardBg} shadow="sm">
+        <Card mb={8} border="1px" maxW={{base:"full",md:"6xl"}} justifySelf={"center"} borderColor={borderColor} bg={cardBg} shadow="sm">
           <CardBody>
             <Flex
               direction={{ base: "column", md: "row" }}

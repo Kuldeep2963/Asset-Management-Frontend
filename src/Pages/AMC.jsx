@@ -100,6 +100,8 @@ import {
   BreadcrumbLink,
   Collapse,
   useBreakpointValue,
+  Checkbox,
+  CheckboxGroup,
 } from "@chakra-ui/react";
 import {
   FiPlus,
@@ -261,13 +263,15 @@ const AMC = () => {
 
   const handleExportData = async () => {
     try {
-      const response = await api.get("/api/contracts/export/", {
+      const endpoint = mainTab === 0 ? "/api/amc-contracts/export/" : "/api/vendors/export/";
+      const response = await api.get(endpoint, {
         responseType: "blob",
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `contracts_export_${Date.now()}.csv`);
+      const filename = mainTab === 0 ? "contracts" : "vendors";
+      link.setAttribute("download", `${filename}_export_${Date.now()}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -295,6 +299,30 @@ const AMC = () => {
     window.print();
   };
 
+  const downloadSampleFile = async (type) => {
+    try {
+      const endpoint = type === 'contract' ? "/api/amc-contracts/sample-file/" : "/api/vendors/sample-file/";
+      const response = await api.get(endpoint, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `${type}_sample_template.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Failed to download sample file",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   const [activeTab, setActiveTab] = useState(0);
   const [mainTab, setMainTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -317,7 +345,7 @@ const AMC = () => {
   const [selectedAssets, setSelectedAssets] = useState([]);
   const [bulkFile, setBulkFile] = useState(null);
   const userData = JSON.parse(sessionStorage.getItem('user')) || JSON.parse(localStorage.getItem('user'));
-  const [bulkUnit, setBulkUnit] = useState(userData?.unit?.id || "");
+  const [bulkUnits, setBulkUnits] = useState(userData?.unit?.id ? [userData.unit.id] : []);
   const [bulkUploadTab, setBulkUploadTab] = useState(0); // 0 for Contracts, 1 for Vendors
   const [formData, setFormData] = useState({
     contract_type: "AMC",
@@ -384,8 +412,9 @@ const AMC = () => {
   const fetchContracts = async () => {
     try {
       const response = await api.get("/api/contracts/");
-      setContracts(response.data);
-      return response.data;
+      const data = response.data.results || response.data || [];
+      setContracts(data);
+      return data;
     } catch (error) {
       console.error("Error fetching contracts:", error);
       toast({
@@ -404,8 +433,9 @@ const AMC = () => {
     try {
       setIsVendorsLoading(true);
       const response = await api.get("/api/vendors/");
-      setVendors(response.data);
-      return response.data;
+      const data = response.data.results || response.data || [];
+      setVendors(data);
+      return data;
     } catch (error) {
       console.error("Error fetching vendors:", error);
       toast({
@@ -425,8 +455,9 @@ const AMC = () => {
     try {
       setIsUnitsLoading(true);
       const response = await api.get("/api/units/");
-      setUnits(response.data);
-      return response.data;
+      const data = response.data.results || response.data || [];
+      setUnits(data);
+      return data;
     } catch (error) {
       console.error("Error fetching units:", error);
       toast({
@@ -446,7 +477,8 @@ const AMC = () => {
     try {
       setIsAssetsLoading(true);
       const response = await api.get("/api/assets/");
-      setAssets(response.data);
+      const data = response.data.results || response.data || [];
+      setAssets(data);
     } catch (error) {
       console.error("Error fetching assets:", error);
       toast({
@@ -754,12 +786,12 @@ const AMC = () => {
 
     const formData = new FormData();
     formData.append("file", bulkFile);
-    if (bulkUploadTab === 0 && bulkUnit) {
-      formData.append("unit", bulkUnit);
+    if (bulkUploadTab === 0 && bulkUnits.length > 0) {
+      formData.append("units", JSON.stringify(bulkUnits));
     }
 
     const endpoint = bulkUploadTab === 0 
-      ? "/api/contracts/bulk-upload/" 
+      ? "/api/amc-contracts/bulk-upload/" 
       : "/api/vendors/bulk-upload/";
 
     try {
@@ -778,7 +810,7 @@ const AMC = () => {
       await fetchAllData();
       onBulkUploadClose();
       setBulkFile(null);
-      setBulkUnit(userData?.unit?.id || "");
+      setBulkUnits(userData?.unit?.id ? [userData.unit.id] : []);
     } catch (error) {
       console.error(`Error uploading bulk ${bulkUploadTab === 0 ? "contracts" : "vendors"}:`, error);
       toast({
@@ -2255,8 +2287,9 @@ const AMC = () => {
       <Modal isOpen={isBulkUploadOpen} onClose={() => {
         onBulkUploadClose();
         setBulkFile(null);
+        setBulkUnits(userData?.unit?.id ? [userData.unit.id] : []);
         setBulkUploadTab(0);
-      }} size={{base:"sm",md:"lg"}}>
+      }} size={{base:"sm",md:"lg"}} scrollBehavior="inside">
         <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader>Bulk Upload Data</ModalHeader>
@@ -2272,18 +2305,50 @@ const AMC = () => {
                   <VStack spacing={4} align="stretch">
                     {userData?.role === "org_admin" && (
                       <FormControl isRequired>
-                        <FormLabel>Select Unit for Contracts</FormLabel>
-                        <Select
-                          value={bulkUnit}
-                          onChange={(e) => setBulkUnit(e.target.value)}
-                          placeholder="Select Unit"
+                        <FormLabel fontWeight="bold">Select Units for Contracts</FormLabel>
+                        <Box 
+                          borderWidth="1px" 
+                          borderRadius="md" 
+                          p={3} 
+                          maxH="200px" 
+                          overflowY="auto"
+                          bg={useColorModeValue("white", "gray.700")}
                         >
-                          {units.map((unit) => (
-                            <option key={unit.id} value={unit.id}>
-                              {unit.name}
-                            </option>
-                          ))}
-                        </Select>
+                          <VStack align="start" spacing={2}>
+                            <Checkbox
+                              isChecked={bulkUnits.length === units.length && units.length > 0}
+                              isIndeterminate={bulkUnits.length > 0 && bulkUnits.length < units.length}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setBulkUnits(units.map(u => u.id));
+                                } else {
+                                  setBulkUnits([]);
+                                }
+                              }}
+                              colorScheme="blue"
+                              fontWeight="semibold"
+                            >
+                              Select All Units
+                            </Checkbox>
+                            <Divider />
+                            <CheckboxGroup 
+                              colorScheme="blue" 
+                              value={bulkUnits} 
+                              onChange={(values) => setBulkUnits(values)}
+                            >
+                              <SimpleGrid columns={1} spacing={2} width="100%">
+                                {units.map((unit) => (
+                                  <Checkbox key={unit.id} value={unit.id}>
+                                    {unit.name}
+                                  </Checkbox>
+                                ))}
+                              </SimpleGrid>
+                            </CheckboxGroup>
+                          </VStack>
+                        </Box>
+                        <Text fontSize="xs" color="gray.500" mt={1}>
+                          {bulkUnits.length} unit(s) selected
+                        </Text>
                       </FormControl>
                     )}
 
@@ -2321,13 +2386,22 @@ const AMC = () => {
 
                     <Alert status="info" borderRadius="md">
                       <AlertIcon />
-                      <Box>
+                      <Box flex="1">
                         <AlertTitle>Contracts Template Info</AlertTitle>
                         <AlertDescription fontSize="sm">
                           Required columns: contract_type, vendor, contract_number,
                           start_date, end_date, sla_hours
                         </AlertDescription>
                       </Box>
+                      <Button
+                        size="sm"
+                        leftIcon={<FiDownload />}
+                        variant="ghost"
+                        colorScheme="blue"
+                        onClick={() => downloadSampleFile('contract')}
+                      >
+                        Sample
+                      </Button>
                     </Alert>
                   </VStack>
                 </TabPanel>
@@ -2368,12 +2442,21 @@ const AMC = () => {
 
                     <Alert status="info" borderRadius="md">
                       <AlertIcon />
-                      <Box>
+                      <Box flex="1">
                         <AlertTitle>Vendors Template Info</AlertTitle>
                         <AlertDescription fontSize="sm">
                           Required columns: name, email, phone, address
                         </AlertDescription>
                       </Box>
+                      <Button
+                        size="sm"
+                        leftIcon={<FiDownload />}
+                        variant="ghost"
+                        colorScheme="blue"
+                        onClick={() => downloadSampleFile('vendor')}
+                      >
+                        Sample
+                      </Button>
                     </Alert>
                   </VStack>
                 </TabPanel>

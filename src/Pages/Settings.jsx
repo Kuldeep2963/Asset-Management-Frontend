@@ -78,7 +78,11 @@ const Settings = () => {
   const fetchUnits = async () => {
     try {
       const response = await api.get("/api/units/");
-      setUnits(response.data || []);
+      if (response.data.results) {
+        setUnits(response.data.results);
+      } else {
+        setUnits(response.data || []);
+      }
     } catch (error) {
       toast({
         title: "Error loading units",

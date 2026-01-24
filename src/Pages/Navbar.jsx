@@ -122,10 +122,11 @@ const NotificationIcon = () => {
       }
     });
     
-    setNotifications(response.data);
+    const notificationsData = response.data.results || response.data || [];
+    setNotifications(notificationsData);
     
     // Update unread count based on the full list
-    const unread = response.data.filter(n => !n.read).length;
+    const unread = Array.isArray(notificationsData) ? notificationsData.filter(n => !n.read).length : 0;
     setUnreadCount(unread);
   } catch (error) {
     console.error('Error fetching notifications:', error);
@@ -648,7 +649,7 @@ const Navbar = () => {
   };
 
   const navItems = getNavItems();
-  const isMobile = useBreakpointValue({ base: true, md: false });
+  const isMobile = useBreakpointValue({ base: true, lg: false });
   
   // Color variables
   const bgColor = useColorModeValue('white', 'gray.800');
@@ -723,7 +724,7 @@ const Navbar = () => {
           mx="auto"
         >
           {/* Left side: Logo */}
-          <HStack spacing={4}>
+          <HStack spacing={{ base: 2, md: 4 }}>
             {/* Logo/Brand */}
             <HStack 
               as="button" 
@@ -735,7 +736,7 @@ const Navbar = () => {
               <Image
                 src='assetcore1.png'
                 alt='Asset Management Logo'
-                width={{base:'150px',lg:'150px'}}
+                width={{ base: '120px', md: '140px', lg: '150px' }}
                 objectFit='contain'
               />
             </HStack>
@@ -774,7 +775,7 @@ const Navbar = () => {
           )}
 
           {/* Right side: User Menu and Notifications */}
-          <HStack spacing={{ base: 1, md: 3 }}>
+          <HStack spacing={{ base: 1, md: 2, lg: 3 }}>
             {/* Notification Bell */}
             <NotificationIcon />
             
@@ -785,7 +786,7 @@ const Navbar = () => {
                 aria-label="History"
                 icon={<FaHistory />}
                 variant="ghost"
-                size="md"
+                size={{ base: "sm", md: "md" }}
                 borderRadius="full"
                 onClick={() => navigate('/history')}
               />
@@ -797,7 +798,8 @@ const Navbar = () => {
                 as={Button}
                 variant="ghost"
                 size="sm"
-                px={2}
+                px={{ base: 1, md: 2 }}
+                minW={{ base: "40px", md: "auto" }}
                 leftIcon={
                   <Avatar
                     size="sm"
@@ -1022,8 +1024,6 @@ const Navbar = () => {
 
       {/* Spacer for fixed navbar */}
       <Box h="60px" />
-      {/* Additional spacer for mobile bottom nav */}
-      {isMobile && <Box h="60px" pb="env(safe-area-inset-bottom)" />}
     </>
   );
 };

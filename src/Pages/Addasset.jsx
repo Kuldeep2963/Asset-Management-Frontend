@@ -237,7 +237,11 @@ const AddAsset = () => {
     setLoading((prev) => ({ ...prev, departments: true }));
     try {
       const response = await api.get(`/api/departments/?unit_id=${unitId}`);
-      setDepartments(response.data || []);
+      if (response.data.results) {
+        setDepartments(response.data.results);
+      } else {
+        setDepartments(response.data || []);
+      }
     } catch (error) {
       console.error("Error loading departments:", error);
       toast({
@@ -256,7 +260,11 @@ const AddAsset = () => {
     setLoading((prev) => ({ ...prev, units: true }));
     try {
       const response = await api.get(`/api/units/`);
-      setUnits(response.data || []);
+      if (response.data.results) {
+        setUnits(response.data.results);
+      } else {
+        setUnits(response.data || []);
+      }
     } catch (error) {
       console.error("Error loading units:", error);
       toast({

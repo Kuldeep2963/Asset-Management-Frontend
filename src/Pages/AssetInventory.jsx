@@ -45,6 +45,8 @@ import {
   FiDownload,
   FiTool,
   FiUpload,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -71,6 +73,10 @@ const AssetInventory = () => {
   const [filterCategory, setFilterCategory] = useState("");
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [nextPage, setNextPage] = useState(null);
+  const [prevPage, setPrevPage] = useState(null);
 
   // Confirmation Modal State
   const {
@@ -104,15 +110,32 @@ const AssetInventory = () => {
 
   useEffect(() => {
     if (user) {
-      fetchAssets();
+      fetchAssets(1);
     }
-  }, [user]);
+  }, [user, searchTerm, filterCategory]);
 
-  const fetchAssets = async () => {
+  const fetchAssets = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await api.get("/api/assets/");
-      setAssets(response.data || []);
+      const params = new URLSearchParams();
+      params.append("page", page);
+      if (searchTerm) params.append("search", searchTerm);
+      if (filterCategory) params.append("category", filterCategory);
+
+      const response = await api.get(`/api/assets/?${params.toString()}`);
+      
+      if (response.data.results) {
+        setAssets(response.data.results);
+        setTotalCount(response.data.count);
+        setNextPage(response.data.next);
+        setPrevPage(response.data.previous);
+      } else {
+        setAssets(response.data || []);
+        setTotalCount(response.data.length || 0);
+        setNextPage(null);
+        setPrevPage(null);
+      }
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error loading assets:", error);
       toast({
@@ -180,15 +203,7 @@ const AssetInventory = () => {
     });
   };
 
-  const filteredAssets = assets.filter((asset) => {
-    const matchesSearch =
-      asset.asset_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asset.asset_id?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory
-      ? asset.category === filterCategory
-      : true;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredAssets = assets;
 
   const categories = [...new Set(assets.map((asset) => asset.category))];
 
@@ -205,7 +220,7 @@ const AssetInventory = () => {
 
   return (
     <Box
-      mb={{ base: 15, md: 0 }}
+      mb={{ base: "65`px", md: 0 }}
       bg={bgColor}
       minH="100vh"
       p={{ base: 2, md: 8 }}
@@ -409,7 +424,8 @@ const AssetInventory = () => {
                     <Box
                       overflowX={"hidden"}
                       overflowY="auto"
-                      height="450px"
+                      maxH={{ base: "none", md: "calc(100vh - 400px)" }}
+                      minH="350px"
                       display={{ base: "none", md: "block" }}
                       border="1px"
                       borderColor={borderColor}
@@ -513,10 +529,28 @@ const AssetInventory = () => {
             </CardBody>
           </Card>
 
-          <Flex justify="space-between" align="center">
+          <Flex justify="space-between" align="center" mt={4} flexWrap="wrap" gap={4}>
             <Text fontSize="sm" color={textColor}>
-              Showing {filteredAssets.length} of {assets.length} assets
+              Showing {assets.length} of {totalCount} assets (Page {currentPage})
             </Text>
+            <HStack spacing={2}>
+              <Button
+                size="sm"
+                onClick={() => fetchAssets(currentPage - 1)}
+                isDisabled={!prevPage || loading}
+                leftIcon={<Icon as={FiChevronLeft} />}
+              >
+                Previous
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => fetchAssets(currentPage + 1)}
+                isDisabled={!nextPage || loading}
+                rightIcon={<Icon as={FiChevronRight} />}
+              >
+                Next
+              </Button>
+            </HStack>
           </Flex>
         </VStack>
       </Container>

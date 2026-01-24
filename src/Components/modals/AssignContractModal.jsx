@@ -27,7 +27,7 @@ const AssignContractModal = ({ asset, isOpen, onClose, onSuccess }) => {
     if (isOpen) {
       api
         .get("/api/contracts/")
-        .then((res) => setContracts(res.data))
+        .then((res) => setContracts(res.data.results || res.data || []))
         .catch(() =>
           toast({
             title: "Error",

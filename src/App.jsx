@@ -39,7 +39,7 @@ function App() {
   return (
     <>
       { !isLoginPage && <Navbar />}
-      <Box>
+      <Box pb={!isLoginPage ? { base: "80px", lg: "20px" } : 0}>
         <Routes>
           <Route path='/' element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path='/reset-password/:uid/:token' element={<PublicRoute><ResetPassword /></PublicRoute>} />

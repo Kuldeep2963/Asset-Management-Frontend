@@ -47,7 +47,11 @@ const BulkUploadModal = ({ isOpen, onClose, onUploadSuccess }) => {
     setLoadingUnits(true);
     try {
       const response = await api.get("/api/units/");
-      setUnits(response.data || []);
+      if (response.data.results) {
+        setUnits(response.data.results);
+      } else {
+        setUnits(response.data || []);
+      }
     } catch (error) {
       toast({
         title: "Error fetching units",
@@ -82,7 +86,7 @@ const BulkUploadModal = ({ isOpen, onClose, onUploadSuccess }) => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "asset_bulk_upload_template.csv");
+      link.setAttribute("download", "asset_bulk_upload_template.xlsx");
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -153,7 +157,7 @@ const BulkUploadModal = ({ isOpen, onClose, onUploadSuccess }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} isCentered size="md">
+    <Modal isOpen={isOpen} onClose={onClose} isCentered size="md" scrollBehavior="inside">
       <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent borderRadius="xl">
         <ModalHeader borderBottomWidth="1px" py={4}>

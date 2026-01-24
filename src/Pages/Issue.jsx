@@ -84,6 +84,7 @@ import {
   useToast,
   Spinner,
   Spacer,
+  useBreakpointValue,
 } from "@chakra-ui/react";
 import {
   FiPlus,
@@ -154,6 +155,7 @@ const Issue = () => {
 
   // Add these to your component state
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const isMobile = useBreakpointValue({ base: true, lg: false });
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10; // You can make this configurable
   const [isLoadingAssignableUsers, setIsLoadingAssignableUsers] =
@@ -249,7 +251,8 @@ const Issue = () => {
     try {
       setIsLoadingAssignableUsers(true);
       const response = await api.get("/api/users/assignable/");
-      setAssignableUsers(response.data);
+      const data = response.data.results || response.data || [];
+      setAssignableUsers(data);
     } catch (error) {
       console.error("Error fetching assignable users:", error);
       toast({
@@ -270,10 +273,10 @@ const Issue = () => {
       const response = await api.get(
         `/api/assets/basic-with-issues/?asset_id=${asset_asset_id}`,
       );
-      const assetData = response.data;
+      const assetData = response.data.results || response.data || [];
       console.log("Fetched asset data:", assetData);
 
-      if (assetData && assetData.length > 0) {
+      if (Array.isArray(assetData) && assetData.length > 0) {
         const asset = assetData[0];
 
         setIssueForm((prev) => ({
@@ -382,7 +385,8 @@ const Issue = () => {
     try {
       setIsLoading(true);
       const response = await api.get("/api/issues/");
-      setIssues(response.data);
+      const data = response.data.results || response.data || [];
+      setIssues(data);
     } catch (error) {
       console.error("Error fetching issues:", error);
       toast({
@@ -1139,40 +1143,44 @@ const Issue = () => {
 </SimpleGrid>
 
       {/* Main Content */}
-      <Grid templateColumns={{ base: "1fr", lg: "1fr" }} gap={6}>
-        {/* Collapsible Filters Button for Mobile */}
-        <Box display={{ base: "block", lg: "none" }}>
-          <Button
-            leftIcon={<FiFilter />}
-            variant="outline"
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            mb={{ base: 2, md: 4 }}
-          >
-            {isFilterOpen ? "Hide Filters" : "Show Filters & Actions"}
-          </Button>
-        </Box>
-
-        <Grid templateColumns={{ base: "1fr", lg: " 1fr" }} gap={6}>
-          {/* Filters Sidebar - Collapsible on Mobile */}
-          <Box
-            display={{
-              base: isFilterOpen ? "block" : "none",
-              lg: "block",
-            }}
-            gridColumn={{ base: "1 / -1", lg: "auto" }}
-          >
-            <Box mb={4}>
-              <Heading size="md" color={headingColor} mb={3}>
+      <Box>
+        {/* Filters Section - Row for Desktop, Column for Mobile */}
+        <Box 
+          bg={cardBg} 
+          p={4} 
+          borderRadius="lg" 
+          border="1px" 
+          borderColor={borderColor} 
+          mb={6}
+          boxShadow="sm"
+        >
+          <Flex direction="column" gap={4}>
+            <Flex justify="space-between" align="center">
+              <Heading size="sm" color={headingColor}>
                 <Flex align="center" gap={2}>
                   <Icon as={FiFilter} />
                   Filters & Actions
                 </Flex>
               </Heading>
-              <HStack spacing={4} align="stretch">
+              
+              <Box display={{ base: "block", lg: "none" }}>
+                <Button
+                  size="sm"
+                  leftIcon={<FiFilter />}
+                  variant="ghost"
+                  onClick={() => setIsFilterOpen(!isFilterOpen)}
+                >
+                  {isFilterOpen ? "Hide" : "Show"}
+                </Button>
+              </Box>
+            </Flex>
+
+            <Collapse in={isFilterOpen || !isMobile} animateOpacity>
+              <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} alignItems="flex-end">
                 {/* Search */}
                 <FormControl>
-                  <FormLabel>Search Issues</FormLabel>
-                  <InputGroup bg={"white"}>
+                  <FormLabel fontSize="xs" fontWeight="bold" mb={1}>Search Issues</FormLabel>
+                  <InputGroup bg={"white"} size="sm">
                     <InputLeftElement pointerEvents="none">
                       <FiSearch color="gray.400" />
                     </InputLeftElement>
@@ -1180,20 +1188,22 @@ const Issue = () => {
                       placeholder="ID, title, asset..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
+                      borderRadius="md"
                     />
                   </InputGroup>
                 </FormControl>
 
                 {/* Priority Filter */}
                 <FormControl>
-                  <FormLabel>Priority</FormLabel>
+                  <FormLabel fontSize="xs" fontWeight="bold" mb={1}>Priority</FormLabel>
                   <Select
                     bg={"white"}
+                    size="sm"
                     value={filter.priority}
                     onChange={(e) =>
                       setFilter({ ...filter, priority: e.target.value })
                     }
-                    aria-label="Filter by priority level"
+                    borderRadius="md"
                   >
                     <option value="all">All Priorities</option>
                     <option value="critical">Critical</option>
@@ -1205,14 +1215,15 @@ const Issue = () => {
 
                 {/* Status Filter */}
                 <FormControl>
-                  <FormLabel>Status</FormLabel>
+                  <FormLabel fontSize="xs" fontWeight="bold" mb={1}>Status</FormLabel>
                   <Select
                     bg={"white"}
+                    size="sm"
                     value={filter.status}
                     onChange={(e) =>
                       setFilter({ ...filter, status: e.target.value })
                     }
-                    aria-label="Filter by status"
+                    borderRadius="md"
                   >
                     <option value="all">All Status</option>
                     <option value="open">Open</option>
@@ -1226,14 +1237,15 @@ const Issue = () => {
 
                 {/* Date Range */}
                 <FormControl>
-                  <FormLabel>Date Range</FormLabel>
+                  <FormLabel fontSize="xs" fontWeight="bold" mb={1}>Date Range</FormLabel>
                   <Select
                     bg={"white"}
+                    size="sm"
                     value={filter.dateRange}
                     onChange={(e) =>
                       setFilter({ ...filter, dateRange: e.target.value })
                     }
-                    aria-label="Filter by date range"
+                    borderRadius="md"
                   >
                     <option value="7days">Last 7 days</option>
                     <option value="30days">Last 30 days</option>
@@ -1242,50 +1254,51 @@ const Issue = () => {
                     <option value="custom">Custom range</option>
                   </Select>
                 </FormControl>
+              </SimpleGrid>
 
-                {/* Quick Actions */}
-                <Box>
-                  <Text fontWeight="medium" mb={3}>
-                    Quick Actions
-                  </Text>
-                  <HStack spacing={2} align="stretch">
-                    <Button
-                      colorScheme="blue"
-                      leftIcon={<FiDownload />}
-                      variant="outline"
-                      size="sm"
-                      aria-label="Export issues"
-                    >
-                      Export Issues
-                    </Button>
-                    <Button
-                      colorScheme="red"
-                      leftIcon={<FiBell />}
-                      variant="outline"
-                      size="sm"
-                      aria-label="Set alerts"
-                    >
-                      Set Alerts
-                    </Button>
-                    {selectedIssues.length > 0 && (
-                      <Button
-                        leftIcon={<MdOutlineAssignment />}
-                        colorScheme="blue"
-                        size="sm"
-                        onClick={onAssignOpen}
-                        aria-label={`Assign ${selectedIssues.length} selected issues`}
-                      >
-                        Assign Selected ({selectedIssues.length})
-                      </Button>
-                    )}
-                  </HStack>
-                </Box>
-              </HStack>
-            </Box>
-          </Box>
+              {/* Quick Actions Row */}
+              <Flex 
+                mt={4} 
+                pt={4} 
+                borderTop="1px" 
+                borderColor={borderColor}
+                justify="flex-end"
+                gap={2}
+                flexWrap="wrap"
+              >
+                <Button
+                  colorScheme="blue"
+                  leftIcon={<FiDownload />}
+                  variant="outline"
+                  size="sm"
+                >
+                  Export
+                </Button>
+                <Button
+                  colorScheme="red"
+                  leftIcon={<FiBell />}
+                  variant="outline"
+                  size="sm"
+                >
+                  Alerts
+                </Button>
+                {selectedIssues.length > 0 && (
+                  <Button
+                    leftIcon={<MdOutlineAssignment />}
+                    colorScheme="blue"
+                    size="sm"
+                    onClick={onAssignOpen}
+                  >
+                    Assign Selected ({selectedIssues.length})
+                  </Button>
+                )}
+              </Flex>
+            </Collapse>
+          </Flex>
+        </Box>
 
-          {/* Main Content Area */}
-          <Box gridColumn={{ base: "1 / -1", lg: "auto" }} mb={4}>
+        {/* Main Content Area */}
+        <Box mb={4}>
             <Tabs
               colorScheme="blue"
               variant="line"
@@ -1936,8 +1949,7 @@ const Issue = () => {
               </TabPanels>
             </Tabs>
           </Box>
-        </Grid>
-      </Grid>
+        </Box>
       {/* </Container> */}
 
       {/* Create Issue Modal */}

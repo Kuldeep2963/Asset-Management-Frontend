@@ -220,8 +220,8 @@ const Dashboard = () => {
     : [];
 
   // Priority alerts data
-  const priorityAlerts = priorityData ? priorityData.alerts : [];
-  const priorityCount = priorityData ? priorityData.count : 0;
+  const priorityAlerts = priorityData ? (priorityData.results || priorityData.alerts || []) : [];
+  const priorityCount = priorityData ? (priorityData.count || priorityAlerts.length) : 0;
   const assetStatus = [
   {
     status: "Operational",

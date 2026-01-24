@@ -235,8 +235,9 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
     try {
       setIsLoading(true);
       const response = await api.get(`${API_BASE_URL}/api/assets/`);
-      setAssets(response.data);
-      calculateStats(response.data);
+      const data = response.data.results || response.data || [];
+      setAssets(data);
+      calculateStats(data);
     } catch (error) {
       console.error('Error fetching assets:', error);
       toast({
@@ -254,7 +255,7 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const fetchServiceHistory = async (assetId) => {
     try {
       const response = await api.get(`${API_BASE_URL}/api/asset-service/${assetId}/service-history/`);
-      setServiceHistory(response.data);
+      setServiceHistory(response.data.results || response.data || []);
     } catch (error) {
       console.error('Error fetching service history:', error);
       toast({
@@ -270,7 +271,7 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const fetchServiceUsers = async () => {
     try {
       const response = await api.get(`${API_BASE_URL}/api/users/assignable/`);
-      const rawData = response.data || [];
+      const rawData = response.data.results || response.data || [];
       const sortedUsers = rawData
         .map(user => ({
           ...user,

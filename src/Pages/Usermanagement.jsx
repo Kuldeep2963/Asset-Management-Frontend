@@ -460,18 +460,21 @@ const UserManagement = () => {
       const data = response.data;
 
       if (userRole === "superadmin") {
-        setOrganizations(data.organizations || []);
-        setAdmins(data.org_admins || []);
-        updateStats("totalOrganizations", (data.organizations || []).length);
-        updateStats("totalAdmins", (data.org_admins || []).length);
+        const orgs = data.organizations?.results || data.organizations || [];
+        const orgAdmins = data.org_admins?.results || data.org_admins || [];
+        setOrganizations(orgs);
+        setAdmins(orgAdmins);
+        updateStats("totalOrganizations", orgs.length);
+        updateStats("totalAdmins", orgAdmins.length);
       } else if (userRole === "org_admin") {
-        const unitsData = data.units || [];
+        const unitsData = data.units?.results || data.units || [];
+        const unitAdminsData = data.unit_admins?.results || data.unit_admins || [];
         setUnits(unitsData);
-        setUnitAdmins(data.unit_admins || []);
+        setUnitAdmins(unitAdminsData);
 
         // Extract all departments from units for org_admin
         const allDepts = unitsData.flatMap((u) =>
-          (u.departments || []).map((d) => ({
+          (u.departments?.results || u.departments || []).map((d) => ({
             ...d,
             unit_id: u.id,
             unit_name: u.name,
@@ -479,38 +482,42 @@ const UserManagement = () => {
         );
         setDepartments(allDepts);
 
-        setUsers([...(data.service_users || []), ...(data.viewers || [])]);
+        const serviceUsers = data.service_users?.results || data.service_users || [];
+        const viewers = data.viewers?.results || data.viewers || [];
+        setUsers([...serviceUsers, ...viewers]);
         updateStats("totalUnits", unitsData.length);
-        updateStats("totalUnitAdmins", (data.unit_admins || []).length);
+        updateStats("totalUnitAdmins", unitAdminsData.length);
         updateStats("totalDepartments", allDepts.length);
         updateStats(
           "totalUsers",
-          (data.service_users || []).length + (data.viewers || []).length,
+          serviceUsers.length + viewers.length,
         );
         const activeUsers = [
-          ...(data.service_users || []),
-          ...(data.viewers || []),
+          ...serviceUsers,
+          ...viewers,
         ].filter((u) => u.is_active).length;
         updateStats("activeUsers", activeUsers);
       } else if (userRole === "unit_admin") {
         const unitData = data.unit || {};
         setUnits([unitData]);
-        const unitDepts = (unitData.departments || []).map((d) => ({
+        const unitDepts = (unitData.departments?.results || unitData.departments || []).map((d) => ({
           ...d,
           unit_id: unitData.id,
           unit_name: unitData.name,
         }));
         setDepartments(unitDepts);
 
-        setUsers([...(data.service_users || []), ...(data.viewers || [])]);
+        const serviceUsers = data.service_users?.results || data.service_users || [];
+        const viewers = data.viewers?.results || data.viewers || [];
+        setUsers([...serviceUsers, ...viewers]);
         updateStats("totalDepartments", unitDepts.length);
         updateStats(
           "totalUsers",
-          (data.service_users || []).length + (data.viewers || []).length,
+          serviceUsers.length + viewers.length,
         );
         const activeUsers = [
-          ...(data.service_users || []),
-          ...(data.viewers || []),
+          ...serviceUsers,
+          ...viewers,
         ].filter((u) => u.is_active).length;
         updateStats("activeUsers", activeUsers);
       }

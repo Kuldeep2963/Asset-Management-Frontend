@@ -312,7 +312,7 @@ const PlanManagement = () => {
     try {
       setIsLoading(true);
       const response = await api.get("/api/plans/");
-      setPlans(response.data);
+      setPlans(response.data.results || response.data || []);
     } catch (error) {
       console.error("Error fetching plans:", error);
       toast({
