@@ -1852,19 +1852,19 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                 <Flex align="center" gap={2}>
                                   <Badge
                                     colorScheme={
-                                      unit.is_active ? "green" : "gray"
+                                      unit.status ? "green" : "gray"
                                     }
                                   >
-                                    {unit.is_active ? "active" : "inactive"}
+                                    {unit.status ? "active" : "inactive"}
                                   </Badge>
                                   <Switch
                                     size="sm"
-                                    isChecked={unit.is_active}
+                                    isChecked={unit.status}
                                     onChange={() =>
                                       handleToggleStatus(
                                         "units",
                                         unit.id,
-                                        unit.is_active,
+                                        unit.status,
                                       )
                                     }
                                   />
@@ -3113,7 +3113,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                   onChange={(e) =>
                     setNewUnitAdmin({ ...newUnitAdmin, unit: e.target.value })
                   }
-                  isDisabled={isEditingUnitAdmin}
+                  // isDisabled={isEditingUnitAdmin}
                 >
                   {units.map((unit) => (
                     <option key={unit.id} value={unit.id}>

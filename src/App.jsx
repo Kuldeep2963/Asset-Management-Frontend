@@ -47,12 +47,12 @@ function App() {
           <Route path='/plan' element={<ProtectedRoute><Plan /></ProtectedRoute>}/>
           <Route path='/subscription' element={<ProtectedRoute><Subscription /></ProtectedRoute>}/>
           <Route path='/issue' element={<ProtectedRoute><Issue /></ProtectedRoute>}/>
-          <Route path='/asset-inventory' element={<ProtectedRoute><AssetInventory /></ProtectedRoute>}/>
+          <Route path='/assets' element={<ProtectedRoute><AssetInventory /></ProtectedRoute>}/>
           <Route path='/add-asset' element={<ProtectedRoute><Addasset /></ProtectedRoute>}/>
           <Route path='/history' element={<ProtectedRoute><History /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/user-management" element={<ProtectedRoute><UserManagement/></ProtectedRoute>}/>
-          <Route path="/viewer" element={<ProtectedRoute><Amc/></ProtectedRoute>}/>
+          <Route path="/users" element={<ProtectedRoute><UserManagement/></ProtectedRoute>}/>
+          <Route path="/amc_cmc" element={<ProtectedRoute><Amc/></ProtectedRoute>}/>
           <Route path="/settings" element={<ProtectedRoute><Settings/></ProtectedRoute>}/>
           <Route path="/services" element={<ProtectedRoute><Services/></ProtectedRoute>}/>
           <Route path="/profile" element={<ProtectedRoute><Profile/></ProtectedRoute>}/>

@@ -595,14 +595,14 @@ const Navbar = () => {
       },
       {
         name: 'Users',
-        path: '/user-management',
+        path: '/users',
         icon: FaUsers,
         description: 'Manage users and permissions',
         roles: ['superadmin', 'org_admin', 'unit_admin']
       },
       {
         name: 'Assets',
-        path: '/asset-inventory',
+        path: '/assets',
         icon: FiPackage,
         description: 'Manage Asset',
         roles: ['org_admin', 'unit_admin', 'service_user','viewer']
@@ -616,7 +616,7 @@ const Navbar = () => {
       },
       {
         name: 'AMC/CMC',
-        path: '/viewer',
+        path: '/amc_cmc',
         icon: FaEye,
         description: 'View-only access',
         roles: ['org_admin', 'unit_admin']

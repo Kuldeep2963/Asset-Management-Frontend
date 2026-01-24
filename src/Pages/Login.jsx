@@ -166,7 +166,7 @@ const LoginPage = () => {
     // Redirect based on role
     switch (role) {
       case 'superadmin':
-        navigate('/user-management');
+        navigate('/users');
         toast({
           title: 'Welcome Super Admin!',
           description: 'Redirecting to User Management',

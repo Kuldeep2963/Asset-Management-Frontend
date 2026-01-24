@@ -56,6 +56,7 @@ import {
   Tag,
   useToast,
   Spinner,
+  Spacer,
   Center,
   NumberInput,
   NumberInputField,
@@ -209,11 +210,6 @@ const AMC = () => {
     onClose: onCreateClose,
   } = useDisclosure();
   const {
-    isOpen: isEditOpen,
-    onOpen: onEditOpen,
-    onClose: onEditClose,
-  } = useDisclosure();
-  const {
     isOpen: isDetailOpen,
     onOpen: onDetailOpen,
     onClose: onDetailClose,
@@ -304,6 +300,7 @@ const AMC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [contracts, setContracts] = useState([]);
   const [vendors, setVendors] = useState([]);
+  const [units, setUnits] = useState([]);
   const [assets, setAssets] = useState([]);
   const [selectedContract, setSelectedContract] = useState(null);
   const [selectedVendor, setSelectedVendor] = useState(null);
@@ -311,6 +308,7 @@ const AMC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isVendorsLoading, setIsVendorsLoading] = useState(false);
   const [isAssetsLoading, setIsAssetsLoading] = useState(false);
+  const [isUnitsLoading, setIsUnitsLoading] = useState(false);
   const [viewMode, setViewMode] = useState("table"); // table, grid, kanban
   const [filterVendor, setFilterVendor] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -319,9 +317,12 @@ const AMC = () => {
   const [selectedAssets, setSelectedAssets] = useState([]);
   const [bulkFile, setBulkFile] = useState(null);
   const userData = JSON.parse(sessionStorage.getItem('user')) || JSON.parse(localStorage.getItem('user'));
+  const [bulkUnit, setBulkUnit] = useState(userData?.unit?.id || "");
+  const [bulkUploadTab, setBulkUploadTab] = useState(0); // 0 for Contracts, 1 for Vendors
   const [formData, setFormData] = useState({
     contract_type: "AMC",
     vendor: "",
+    unit: userData?.unit?.id || "",
     contract_number: "",
     start_date: format(new Date(), "yyyy-MM-dd"),
     end_date: format(addDays(new Date(), 365), "yyyy-MM-dd"),
@@ -364,10 +365,11 @@ const AMC = () => {
   const fetchAllData = async () => {
     setIsLoading(true);
     try {
-      const [contractsData, vendorsData] = await Promise.all([
-        fetchContracts(),
-        fetchVendors(),
-      ]);
+      const promises = [fetchContracts(), fetchVendors()];
+      if (userData?.role === "org_admin") {
+        promises.push(fetchUnits());
+      }
+      const [contractsData, vendorsData] = await Promise.all(promises);
 
       if (contractsData && vendorsData) {
         calculateStats(contractsData, vendorsData);
@@ -416,6 +418,27 @@ const AMC = () => {
       return [];
     } finally {
       setIsVendorsLoading(false);
+    }
+  };
+
+  const fetchUnits = async () => {
+    try {
+      setIsUnitsLoading(true);
+      const response = await api.get("/api/units/");
+      setUnits(response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching units:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to fetch units",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return [];
+    } finally {
+      setIsUnitsLoading(false);
     }
   };
 
@@ -624,6 +647,7 @@ const AMC = () => {
     setFormData({
       contract_type: contract.contract_type,
       vendor: contract.vendor,
+      unit: contract.unit,
       contract_number: contract.contract_number,
       start_date: contract.start_date,
       end_date: contract.end_date,
@@ -631,7 +655,7 @@ const AMC = () => {
       coverage_details: contract.coverage_details,
       is_active: contract.is_active,
     });
-    onEditOpen();
+    onCreateOpen();
   };
 
   const handleUpdateContract = async () => {
@@ -650,7 +674,7 @@ const AMC = () => {
       });
       await fetchAllData();
       resetForm();
-      onEditClose();
+      onCreateClose();
     } catch (error) {
       console.error("Error updating contract:", error);
       toast({
@@ -730,16 +754,23 @@ const AMC = () => {
 
     const formData = new FormData();
     formData.append("file", bulkFile);
+    if (bulkUploadTab === 0 && bulkUnit) {
+      formData.append("unit", bulkUnit);
+    }
+
+    const endpoint = bulkUploadTab === 0 
+      ? "/api/contracts/bulk-upload/" 
+      : "/api/vendors/bulk-upload/";
 
     try {
-      await api.post(`/api/contracts/bulk-upload/`, formData, {
+      await api.post(endpoint, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
       toast({
         title: "Success",
-        description: "Contracts uploaded successfully",
+        description: `${bulkUploadTab === 0 ? "Contracts" : "Vendors"} uploaded successfully`,
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -747,12 +778,13 @@ const AMC = () => {
       await fetchAllData();
       onBulkUploadClose();
       setBulkFile(null);
+      setBulkUnit(userData?.unit?.id || "");
     } catch (error) {
-      console.error("Error uploading bulk contracts:", error);
+      console.error(`Error uploading bulk ${bulkUploadTab === 0 ? "contracts" : "vendors"}:`, error);
       toast({
         title: "Error",
         description:
-          error.response?.data?.detail || "Failed to upload contracts",
+          error.response?.data?.detail || `Failed to upload ${bulkUploadTab === 0 ? "contracts" : "vendors"}`,
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -856,6 +888,7 @@ const AMC = () => {
     setFormData({
       contract_type: "AMC",
       vendor: "",
+      unit: userData?.unit?.id || "",
       contract_number: "",
       start_date: format(new Date(), "yyyy-MM-dd"),
       end_date: format(addDays(new Date(), 365), "yyyy-MM-dd"),
@@ -1577,7 +1610,7 @@ const AMC = () => {
                   justify="space-between"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Button size="sm" variant="ghost" leftIcon={<FiEye />}>
+                  <Button size="sm" variant="ghost" onClick={() => handleViewDetails(contract)} leftIcon={<FiEye />}>
                     View
                   </Button>
                   <HStack>
@@ -1925,16 +1958,21 @@ const AMC = () => {
       {/* Create Contract Modal */}
       <Modal
         isOpen={isCreateOpen}
-        onClose={onCreateClose}
+        onClose={() => {
+          onCreateClose();
+          resetForm();
+        }}
         size="4xl"
         scrollBehavior="inside"
       >
         <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader>
-            <Heading size="md">Create New Maintenance Contract</Heading>
+            <Heading size="md">
+              {selectedContract ? "Edit Maintenance Contract" : "Create New Maintenance Contract"}
+            </Heading>
             <Text fontSize="sm" color={textColor} mt={1}>
-              Fill in the contract details below
+              {selectedContract ? "Update the contract details below" : "Fill in the contract details below"}
             </Text>
           </ModalHeader>
           <ModalCloseButton />
@@ -2010,6 +2048,24 @@ const AMC = () => {
                   Add New Vendor
                 </Button>
               </FormControl>
+
+              {userData?.role === "org_admin" && (
+                <FormControl isRequired>
+                  <FormLabel>Unit</FormLabel>
+                  <Select
+                    name="unit"
+                    value={formData.unit}
+                    onChange={handleInputChange}
+                    placeholder="Select Unit"
+                  >
+                    {units.map((unit) => (
+                      <option key={unit.id} value={unit.id}>
+                        {unit.name}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
 
               <FormControl isRequired>
                 <FormLabel>SLA Response Time (Hours)</FormLabel>
@@ -2095,11 +2151,19 @@ const AMC = () => {
             </Grid>
           </ModalBody>
           <ModalFooter borderTop="1px" borderColor={borderColor} pt={4}>
-            <Button variant="ghost" mr={3} onClick={onCreateClose}>
+            <Button variant="ghost" mr={3} onClick={() => {
+              onCreateClose();
+              resetForm();
+            }}>
               Cancel
             </Button>
-            <Button colorScheme="blue" onClick={handleCreateContract} size="lg">
-              <FiPlus /> Create Contract
+            <Button
+              colorScheme="blue"
+              onClick={selectedContract ? handleUpdateContract : handleCreateContract}
+              size={{base:"md",md:"md"}}
+              leftIcon={selectedContract ? <FiEdit /> : <FiPlus />}
+            >
+              {selectedContract ? "Update Contract" : "Create Contract"}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -2188,61 +2252,133 @@ const AMC = () => {
       </Modal>
 
       {/* Bulk Upload Modal */}
-      <Modal isOpen={isBulkUploadOpen} onClose={onBulkUploadClose}>
+      <Modal isOpen={isBulkUploadOpen} onClose={() => {
+        onBulkUploadClose();
+        setBulkFile(null);
+        setBulkUploadTab(0);
+      }} size={{base:"sm",md:"lg"}}>
         <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
-          <ModalHeader>Bulk Upload Contracts</ModalHeader>
+          <ModalHeader>Bulk Upload Data</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <VStack spacing={4}>
-              <Box
-                border="2px dashed"
-                borderColor="gray.300"
-                borderRadius="lg"
-                p={8}
-                textAlign="center"
-                width="100%"
-                _hover={{ borderColor: "blue.500" }}
-              >
-                <Input
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={(e) => setBulkFile(e.target.files[0])}
-                  display="none"
-                  id="file-upload"
-                />
-                <label htmlFor="file-upload">
-                  <VStack spacing={3} cursor="pointer">
-                    <Icon as={FiUploadCloud} boxSize={10} color="blue.500" />
-                    <Text fontWeight="medium">Click to upload file</Text>
-                    <Text fontSize="sm" color={textColor}>
-                      Supported formats: CSV, Excel (.xlsx, .xls)
-                    </Text>
-                    {bulkFile && (
-                      <Badge colorScheme="green">
-                        Selected: {bulkFile.name}
-                      </Badge>
+            <Tabs isFitted colorScheme="blue" onChange={(index) => setBulkUploadTab(index)}>
+              <TabList mb="1em">
+                <Tab>Contracts</Tab>
+                <Tab>Vendors</Tab>
+              </TabList>
+              <TabPanels>
+                <TabPanel p={0}>
+                  <VStack spacing={4} align="stretch">
+                    {userData?.role === "org_admin" && (
+                      <FormControl isRequired>
+                        <FormLabel>Select Unit for Contracts</FormLabel>
+                        <Select
+                          value={bulkUnit}
+                          onChange={(e) => setBulkUnit(e.target.value)}
+                          placeholder="Select Unit"
+                        >
+                          {units.map((unit) => (
+                            <option key={unit.id} value={unit.id}>
+                              {unit.name}
+                            </option>
+                          ))}
+                        </Select>
+                      </FormControl>
                     )}
+
+                    <Box
+                      border="2px dashed"
+                      borderColor="gray.300"
+                      borderRadius="lg"
+                      p={8}
+                      textAlign="center"
+                      width="100%"
+                      _hover={{ borderColor: "blue.500" }}
+                    >
+                      <Input
+                        type="file"
+                        accept=".csv,.xlsx,.xls"
+                        onChange={(e) => setBulkFile(e.target.files[0])}
+                        display="none"
+                        id="contract-bulk-upload"
+                      />
+                      <label htmlFor="contract-bulk-upload">
+                        <VStack spacing={3} cursor="pointer">
+                          <Icon as={FiUploadCloud} boxSize={10} color="blue.500" />
+                          <Text fontWeight="medium">Upload Contracts File</Text>
+                          <Text fontSize="sm" color={textColor}>
+                            Supported formats: CSV, Excel (.xlsx, .xls)
+                          </Text>
+                          {bulkFile && bulkUploadTab === 0 && (
+                            <Badge colorScheme="green">
+                              Selected: {bulkFile.name}
+                            </Badge>
+                          )}
+                        </VStack>
+                      </label>
+                    </Box>
+
+                    <Alert status="info" borderRadius="md">
+                      <AlertIcon />
+                      <Box>
+                        <AlertTitle>Contracts Template Info</AlertTitle>
+                        <AlertDescription fontSize="sm">
+                          Required columns: contract_type, vendor, contract_number,
+                          start_date, end_date, sla_hours
+                        </AlertDescription>
+                      </Box>
+                    </Alert>
                   </VStack>
-                </label>
-              </Box>
+                </TabPanel>
 
-              <Alert status="info" borderRadius="md">
-                <AlertIcon />
-                <Box>
-                  <AlertTitle>Template Requirements</AlertTitle>
-                  <AlertDescription fontSize="sm">
-                    Download our template file to ensure proper formatting.
-                    Required columns: contract_type, vendor, contract_number,
-                    start_date, end_date, sla_hours
-                  </AlertDescription>
-                </Box>
-              </Alert>
+                <TabPanel p={0}>
+                  <VStack spacing={4} align="stretch">
+                    <Box
+                      border="2px dashed"
+                      borderColor="gray.300"
+                      borderRadius="lg"
+                      p={8}
+                      textAlign="center"
+                      width="100%"
+                      _hover={{ borderColor: "blue.500" }}
+                    >
+                      <Input
+                        type="file"
+                        accept=".csv,.xlsx,.xls"
+                        onChange={(e) => setBulkFile(e.target.files[0])}
+                        display="none"
+                        id="vendor-bulk-upload"
+                      />
+                      <label htmlFor="vendor-bulk-upload">
+                        <VStack spacing={3} cursor="pointer">
+                          <Icon as={FiUploadCloud} boxSize={10} color="blue.500" />
+                          <Text fontWeight="medium">Upload Vendors File</Text>
+                          <Text fontSize="sm" color={textColor}>
+                            Supported formats: CSV, Excel (.xlsx, .xls)
+                          </Text>
+                          {bulkFile && bulkUploadTab === 1 && (
+                            <Badge colorScheme="green">
+                              Selected: {bulkFile.name}
+                            </Badge>
+                          )}
+                        </VStack>
+                      </label>
+                    </Box>
 
-              <Button variant="link" size="sm" leftIcon={<FiDownload />}>
-                Download Template File
-              </Button>
-            </VStack>
+                    <Alert status="info" borderRadius="md">
+                      <AlertIcon />
+                      <Box>
+                        <AlertTitle>Vendors Template Info</AlertTitle>
+                        <AlertDescription fontSize="sm">
+                          Required columns: name, email, phone, address
+                        </AlertDescription>
+                      </Box>
+                    </Alert>
+                  </VStack>
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onBulkUploadClose}>
@@ -2263,44 +2399,57 @@ const AMC = () => {
       <Modal
         isOpen={isDetailOpen}
         onClose={onDetailClose}
-        size="3xl"
-        scrollBehavior="outside"
+        size={{ base: "sm", md: "4xl" }}
+        scrollBehavior="inside"
       >
         <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           {selectedContract && (
             <>
-              <ModalHeader>
+              <ModalHeader borderBottomWidth="1px" borderColor={borderColor}>
                 <VStack align="stretch" spacing={2}>
-                  <Flex gap={8} justify="left" align="center">
-                    <Heading size="lg">
+                  <Flex
+                    direction={{ base: "column", sm: "row" }}
+                    justify="space-between"
+                    align={{ base: "start", sm: "center" }}
+                    gap={4}
+                  >
+                    <Heading size="md">
                       {selectedContract.contract_number}
                     </Heading>
                     {getStatusBadge(selectedContract)}
                   </Flex>
-                  <Text color={textColor}>
+                  <Text color={textColor} fontSize="sm">
                     {selectedContract.contract_type} •{" "}
                     {selectedContract.vendor_name}
                   </Text>
                 </VStack>
               </ModalHeader>
               <ModalCloseButton />
-              <ModalBody>
-                <Tabs colorScheme="blue">
-                  <TabList>
-                    <Tab>Overview</Tab>
-                    <Tab>Assets Covered</Tab>
-                    <Tab>Service History</Tab>
-                    <Tab>Documents</Tab>
+              <ModalBody p={{ base: 2, md: 6 }}>
+                <Tabs colorScheme="blue" isFitted variant="line">
+                  <TabList
+                    position="sticky"
+                    top="0"
+                    zIndex="2"
+                    bg={cardBg}
+                    // pt={2}
+                    borderBottomWidth="1px"
+                    borderColor={borderColor}
+                  >
+                    <Tab fontSize={{ base: "xs", md: "sm" }}>Overview</Tab>
+                    <Tab fontSize={{ base: "xs", md: "sm" }}>Assets</Tab>
+                    <Tab fontSize={{ base: "xs", md: "sm" }}>Service</Tab>
+                    <Tab fontSize={{ base: "xs", md: "sm" }}>Docs</Tab>
                   </TabList>
                   <TabPanels>
-                    <TabPanel p={0} pt={4}>
+                    <TabPanel px={{ base: 0, md: 4 }} pt={4}>
                       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                        <Card>
+                        <Card variant="outline">
                           <CardBody>
                             <VStack align="stretch" spacing={4}>
                               <Box>
-                                <Text fontSize="sm" color={textColor}>
+                                <Text fontSize="sm" color={textColor} fontWeight="medium">
                                   Contract Type
                                 </Text>
                                 <Tag
@@ -2309,27 +2458,27 @@ const AMC = () => {
                                       ? "purple"
                                       : "blue"
                                   }
-                                  size="lg"
+                                  size="md"
                                   mt={2}
                                 >
                                   {selectedContract.contract_type}
                                 </Tag>
                               </Box>
                               <Box>
-                                <Text fontSize="sm" color={textColor}>
-                                  Vendor
+                                <Text fontSize="sm" color={textColor} fontWeight="medium">
+                                  Vendor Details
                                 </Text>
-                                <HStack mt={2}>
+                                <HStack mt={2} spacing={3}>
                                   <Avatar
                                     size="sm"
                                     name={selectedContract.vendor_name}
                                   />
                                   <VStack align="start" spacing={0}>
-                                    <Text fontWeight="medium">
+                                    <Text fontWeight="bold" fontSize="sm">
                                       {selectedContract.vendor_name}
                                     </Text>
                                     {selectedContract.vendor_phone && (
-                                      <Text fontSize="sm" color={textColor}>
+                                      <Text fontSize="xs" color={textColor}>
                                         {selectedContract.vendor_phone}
                                       </Text>
                                     )}
@@ -2340,16 +2489,17 @@ const AMC = () => {
                           </CardBody>
                         </Card>
 
-                        <Card>
+                        <Card variant="outline">
                           <CardBody>
                             <VStack align="stretch" spacing={4}>
                               <Box>
-                                <Text fontSize="sm" color={textColor}>
+                                <Text fontSize="sm" color={textColor} fontWeight="medium">
                                   Contract Period
                                 </Text>
-                                <VStack align="start" spacing={1} mt={2}>
-                                  <HStack>
-                                    <Icon as={FiCalendar} color={textColor} />
+                                <VStack align="start" spacing={2} mt={2}>
+                                  <HStack fontSize="sm">
+                                    <Icon as={FiCalendar} color="blue.500" />
+                                    <Text fontWeight="medium">Starts:</Text>
                                     <Text>
                                       {format(
                                         parseISO(selectedContract.start_date),
@@ -2357,8 +2507,9 @@ const AMC = () => {
                                       )}
                                     </Text>
                                   </HStack>
-                                  <HStack>
-                                    <Icon as={FiCalendar} color={textColor} />
+                                  <HStack fontSize="sm">
+                                    <Icon as={FiCalendar} color="red.500" />
+                                    <Text fontWeight="medium">Ends:</Text>
                                     <Text>
                                       {format(
                                         parseISO(selectedContract.end_date),
@@ -2366,85 +2517,96 @@ const AMC = () => {
                                       )}
                                     </Text>
                                   </HStack>
-                                  <Text fontSize="sm" color={textColor}>
-                                    Duration:{" "}
+                                  <Badge colorScheme="blue" variant="subtle" mt={1}>
                                     {differenceInDays(
                                       parseISO(selectedContract.end_date),
                                       parseISO(selectedContract.start_date),
                                     )}{" "}
-                                    days
-                                  </Text>
+                                    Days Total
+                                  </Badge>
                                 </VStack>
                               </Box>
                             </VStack>
                           </CardBody>
                         </Card>
 
-                        <Card gridColumn="span 2">
+                        <Card gridColumn={{ base: "span 1", md: "span 2" }} variant="outline">
                           <CardBody>
                             <VStack align="stretch" spacing={4}>
                               <Box>
-                                <Text fontSize="sm" color={textColor}>
-                                  Service Level Agreement
+                                <Text fontSize="sm" color={textColor} fontWeight="medium" mb={3}>
+                                  Service Level Agreement (SLA)
                                 </Text>
-                                <HStack spacing={6} mt={2}>
-                                  <VStack align="start" spacing={1}>
-                                    <Text fontSize="sm" color={textColor}>
+                                <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={4}>
+                                  <VStack
+                                    align={{ base: "center", sm: "start" }}
+                                    spacing={1}
+                                    p={3}
+                                    bg={bgColor}
+                                    borderRadius="md"
+                                  >
+                                    <Text fontSize="xs" color={textColor} textTransform="uppercase">
                                       Response Time
                                     </Text>
-                                    <Text fontWeight="bold" fontSize="xl">
-                                      {selectedContract.sla_hours} hours
+                                    <Text fontWeight="bold" fontSize="lg">
+                                      {selectedContract.sla_hours}h
                                     </Text>
                                   </VStack>
-                                  <Divider
-                                    orientation="vertical"
-                                    height="40px"
-                                  />
-                                  <VStack align="start" spacing={1}>
-                                    <Text fontSize="sm" color={textColor}>
+                                  <VStack
+                                    align={{ base: "center", sm: "start" }}
+                                    spacing={1}
+                                    p={3}
+                                    bg={bgColor}
+                                    borderRadius="md"
+                                  >
+                                    <Text fontSize="xs" color={textColor} textTransform="uppercase">
                                       Status
                                     </Text>
-                                    <Text fontWeight="bold">
-                                      {selectedContract.is_active
-                                        ? "Active"
-                                        : "Inactive"}
-                                    </Text>
+                                    <Badge
+                                      colorScheme={selectedContract.is_active ? "green" : "gray"}
+                                    >
+                                      {selectedContract.is_active ? "Active" : "Inactive"}
+                                    </Badge>
                                   </VStack>
-                                  <Divider
-                                    orientation="vertical"
-                                    height="40px"
-                                  />
-                                  <VStack align="start" spacing={1}>
-                                    <Text fontSize="sm" color={textColor}>
-                                      Days Remaining
+                                  <VStack
+                                    align={{ base: "center", sm: "start" }}
+                                    spacing={1}
+                                    p={3}
+                                    bg={bgColor}
+                                    borderRadius="md"
+                                  >
+                                    <Text fontSize="xs" color={textColor} textTransform="uppercase">
+                                      Time Left
                                     </Text>
                                     <Text
                                       fontWeight="bold"
-                                      fontSize="xl"
+                                      fontSize="lg"
                                       color={
-                                        getDaysRemaining(
-                                          selectedContract.end_date,
-                                        ) < 30
+                                        getDaysRemaining(selectedContract.end_date) < 30
                                           ? "orange.500"
                                           : "green.500"
                                       }
                                     >
-                                      {getDaysRemaining(
-                                        selectedContract.end_date,
-                                      )}
+                                      {getDaysRemaining(selectedContract.end_date)}d
                                     </Text>
                                   </VStack>
-                                </HStack>
+                                </SimpleGrid>
                               </Box>
 
                               {selectedContract.coverage_details && (
-                                <Box>
-                                  <Text fontSize="sm" color={textColor}>
+                                <Box pt={2}>
+                                  <Text fontSize="sm" color={textColor} fontWeight="medium" mb={2}>
                                     Coverage Details
                                   </Text>
-                                  <Text mt={2} whiteSpace="pre-line">
+                                  <Box
+                                    p={3}
+                                    bg={bgColor}
+                                    borderRadius="md"
+                                    fontSize="sm"
+                                    whiteSpace="pre-line"
+                                  >
                                     {selectedContract.coverage_details}
-                                  </Text>
+                                  </Box>
                                 </Box>
                               )}
                             </VStack>
@@ -2453,113 +2615,48 @@ const AMC = () => {
                       </SimpleGrid>
                     </TabPanel>
 
-                    <TabPanel p={0} pt={4}>
+                    <TabPanel px={{ base: 0, md: 4 }} pt={4}>
                       {selectedAssets.length > 0 ? (
                         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                           {selectedAssets.map((asset) => (
-                            <Card key={asset.id}>
-                              <CardBody>
+                            <Card key={asset.id} variant="outline">
+                              <CardBody p={4}>
                                 <VStack align="stretch" spacing={3}>
-                                  {/* Asset Name and Type */}
-                                  <Box>
-                                    <Heading size="sm">
-                                      {asset.asset_name}
-                                    </Heading>
-                                    <Text fontSize="sm" color={textColor}>
-                                      {asset.asset_type}
-                                    </Text>
-                                  </Box>
-
-                                  {/* Asset ID and Category */}
-                                  <HStack justify="space-between">
-                                    <VStack align="start" spacing={0}>
+                                  <Flex justify="space-between" align="start">
+                                    <Box>
+                                      <Heading size="xs" noOfLines={1}>
+                                        {asset.asset_name}
+                                      </Heading>
                                       <Text fontSize="xs" color={textColor}>
-                                        Asset ID
+                                        {asset.asset_type}
                                       </Text>
-                                      <Text fontSize="sm" fontWeight="medium">
-                                        {asset.asset_id}
-                                      </Text>
-                                    </VStack>
-                                    <VStack align="end" spacing={0}>
-                                      <Text fontSize="xs" color={textColor}>
-                                        Category
-                                      </Text>
-                                      <Text fontSize="sm">
-                                        {asset.category}
-                                      </Text>
-                                    </VStack>
-                                  </HStack>
-
-                                  {/* Status and Criticality */}
-                                  <HStack justify="space-between">
-                                    <Text fontSize="xs" color={textColor}>Status</Text>
+                                    </Box>
                                     <Badge
-                                      colorScheme={
-                                        asset.status === "active"
-                                          ? "green"
-                                          : "red"
-                                      }
-                                      size="sm"
+                                      colorScheme={asset.status === "active" ? "green" : "red"}
+                                      fontSize="10px"
                                     >
                                       {asset.status}
                                     </Badge>
-                                    
-                                  </HStack>
+                                  </Flex>
 
-                                  {/* Dates */}
-                                  <VStack align="stretch" spacing={1}>
-                                    <HStack justify="space-between">
-                                      <Text fontSize="xs" color={textColor}>
-                                        Created
-                                      </Text>
-                                      <Text fontSize="xs">
-                                        {new Date(
-                                          asset.created_at,
-                                        ).toLocaleDateString()}
-                                      </Text>
-                                    </HStack>
-                                    {asset.purchase_date && (
-                                      <HStack justify="space-between">
-                                        <Text fontSize="xs" color={textColor}>
-                                          Purchase Date
-                                        </Text>
-                                        <Text fontSize="xs">
-                                          {new Date(
-                                            asset.purchase_date,
-                                          ).toLocaleDateString()}
-                                        </Text>
-                                      </HStack>
-                                    )}
-                                    {asset.warranty_expiry_date && (
-                                      <HStack justify="space-between">
-                                        <Text fontSize="xs" color={textColor}>
-                                          Warranty Expiry
-                                        </Text>
-                                        <Text
-                                          fontSize="xs"
-                                          color={
-                                            new Date(
-                                              asset.warranty_expiry_date,
-                                            ) < new Date()
-                                              ? "red.500"
-                                              : "inherit"
-                                          }
-                                        >
-                                          {new Date(
-                                            asset.warranty_expiry_date,
-                                          ).toLocaleDateString()}
-                                        </Text>
-                                      </HStack>
-                                    )}
-                                  </VStack>
+                                  <SimpleGrid columns={2} spacing={2} fontSize="xs">
+                                    <Box>
+                                      <Text color={textColor}>ID</Text>
+                                      <Text fontWeight="medium">{asset.asset_id}</Text>
+                                    </Box>
+                                    <Box>
+                                      <Text color={textColor}>Category</Text>
+                                      <Text fontWeight="medium">{asset.category}</Text>
+                                    </Box>
+                                  </SimpleGrid>
 
-                                  {/* Quick Actions */}
                                   <Divider />
-                                  <HStack justify="space-between">
+
+                                  <Flex justify="space-between">
                                     <Button
                                       size="xs"
                                       variant="ghost"
-                                      colorScheme="blue"
+                                      leftIcon={<FiEye />}
                                       onClick={() => handleViewAsset(asset)}
                                     >
                                       View
@@ -2567,14 +2664,13 @@ const AMC = () => {
                                     <Button
                                       size="xs"
                                       variant="ghost"
-                                      colorScheme="green"
-                                      onClick={() =>
-                                        handleServiceRequest(asset)
-                                      }
+                                      colorScheme="blue"
+                                      leftIcon={<FiTool />}
+                                      onClick={() => handleServiceRequest(asset)}
                                     >
                                       Service
                                     </Button>
-                                  </HStack>
+                                  </Flex>
                                 </VStack>
                               </CardBody>
                             </Card>
@@ -2582,45 +2678,35 @@ const AMC = () => {
                         </SimpleGrid>
                       ) : (
                         <Center py={10}>
-                          <VStack>
-                            <Icon as={FiTool} boxSize={12} color="gray.400" />
-                            <Text color={textColor}>
-                              No assets linked to this contract
-                            </Text>
-                            <Text fontSize="sm" color={textColor}>
-                              Assets can be linked from the asset management
-                              module
-                            </Text>
+                          <VStack spacing={3}>
+                            <Icon as={FiTool} boxSize={10} color="gray.300" />
+                            <Text color={textColor} fontSize="sm">No assets linked</Text>
                           </VStack>
                         </Center>
                       )}
                     </TabPanel>
 
-                    <TabPanel p={0} pt={4}>
+                    <TabPanel px={{ base: 0, md: 4 }} pt={4}>
                       <Center py={10}>
-                        <VStack>
-                          <Icon as={FiFileText} boxSize={12} color="gray.400" />
-                          <Text color={textColor}>
-                            No service history available
-                          </Text>
-                          <Text fontSize="sm" color={textColor}>
-                            Service tickets will appear here when created
-                          </Text>
+                        <VStack spacing={3}>
+                          <Icon as={FiClock} boxSize={10} color="gray.300" />
+                          <Text color={textColor} fontSize="sm">No service history</Text>
                         </VStack>
                       </Center>
                     </TabPanel>
 
-                    <TabPanel p={0} pt={4}>
+                    <TabPanel px={{ base: 0, md: 4 }} pt={4}>
                       <Center py={10}>
-                        <VStack>
-                          <Icon as={FiFileText} boxSize={12} color="gray.400" />
-                          <Text color={textColor}>No documents attached</Text>
+                        <VStack spacing={4}>
+                          <Icon as={FiFileText} boxSize={10} color="gray.300" />
+                          <Text color={textColor} fontSize="sm">No documents</Text>
                           <Button
                             leftIcon={<FiUploadCloud />}
                             colorScheme="blue"
                             size="sm"
+                            variant="outline"
                           >
-                            Upload Document
+                            Upload
                           </Button>
                         </VStack>
                       </Center>
@@ -2628,14 +2714,18 @@ const AMC = () => {
                   </TabPanels>
                 </Tabs>
               </ModalBody>
-              <ModalFooter borderTop="1px" borderColor={borderColor} pt={4}>
-                <HStack spacing={3}>
-                  <Button variant="outline" leftIcon={<FiPrinter />} onClick={handlePrint}>
+              <ModalFooter borderTop="1px" borderColor={borderColor} p={4}>
+                <Flex w="100%" gap={5} direction={{ base: "row", sm: "row" }}>
+                  <Button
+                    variant="outline"
+                    leftIcon={<FiPrinter />}
+                    onClick={handlePrint}
+                    flex={{ base: "1", sm: "none" }}
+                    size={{ base: "sm", md: "md" }}
+                  >
                     Print
                   </Button>
-                  <Button variant="outline" leftIcon={<FiShare2 />}>
-                    Share
-                  </Button>
+                  <Spacer display={{ base: "none", sm: "block" }} />
                   <Button
                     colorScheme="blue"
                     leftIcon={<FiEdit />}
@@ -2643,10 +2733,12 @@ const AMC = () => {
                       onDetailClose();
                       handleEditContract(selectedContract);
                     }}
+                    flex={{ base: "1", sm: "none" }}
+                    size={{ base: "sm", md: "md" }}
                   >
                     Edit Contract
                   </Button>
-                </HStack>
+                </Flex>
               </ModalFooter>
             </>
           )}

@@ -118,7 +118,7 @@ const Dashboard = () => {
           color: "blue.500",
           description: "Active assets in system",
           trend: "up",
-          path: "/asset-inventory",
+          path: "/assets",
         },
         {
           id: 2,
@@ -130,7 +130,7 @@ const Dashboard = () => {
           color: "red.500",
           description: "Currently not operational",
           trend: "down",
-          path: "/asset-inventory",
+          path: "/assets",
         },
         {
           id: 3,
@@ -166,7 +166,7 @@ const Dashboard = () => {
           color: "purple.500",
           description: "Warranty ended",
           trend: "warning",
-          path: "/asset-inventory",
+          path: "/assets",
         },
         {
           id: 6,
@@ -190,7 +190,7 @@ const Dashboard = () => {
           color: "green.500",
           description: "Covered assets",
           trend: "up",
-          path: "/asset-inventory",
+          path: "/assets",
         },
         {
           id: 8,
@@ -202,7 +202,7 @@ const Dashboard = () => {
           color: "teal.500",
           description: "Expired licenses",
           trend: "stable",
-          path: "/asset-inventory",
+          path: "/assets",
         },
         {
           id: 9,

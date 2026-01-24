@@ -417,7 +417,7 @@ const AddAsset = () => {
       });
 
       if (isEditMode) {
-        navigate("/asset-inventory");
+        navigate("/assets");
       } else {
         setDefaultFields({
           organization: user?.organization?.id || "",
@@ -526,7 +526,7 @@ const AddAsset = () => {
             size="sm"
 
       leftIcon={<FiXCircle />}
-      onClick={() => navigate("/asset-inventory")}
+      onClick={() => navigate("/assets")}
       
     >
       {viewMode ? "Close" : "Cancel"}
@@ -562,7 +562,7 @@ const AddAsset = () => {
       variant="outline"
       size="sm"
       leftIcon={<FiXCircle />}
-      onClick={() => navigate("/asset-inventory")}
+      onClick={() => navigate("/assets")}
     >
       {viewMode ? "Close" : "Cancel"}
     </Button>
