@@ -345,7 +345,7 @@ const Subscription = () => {
   const highlightColor = useColorModeValue('blue.50', 'blue.900');
 
   return (
-    <Container maxW="full" p={{ base: 4, md: 10 }} pt={{ base: 0, md: 10 }} mb={{base:14,md:0}}>
+    <Container maxW="full" p={{ base: 4, md: 10 }} pt={{ base: 6, md: 10 }} mb={{base:14,md:0}}>
       {/* Current Active Plan Card */}
       {user?.organization?.plan && (
         <Card mb={8} border="1px" maxW={{base:"full",md:"6xl"}} justifySelf={"center"} borderColor={borderColor} bg={cardBg} shadow="sm">

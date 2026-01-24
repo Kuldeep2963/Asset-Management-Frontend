@@ -263,7 +263,7 @@ const AMC = () => {
 
   const handleExportData = async () => {
     try {
-      const endpoint = mainTab === 0 ? "/api/amc-contracts/export/" : "/api/vendors/export/";
+      const endpoint = mainTab === 0 ? "/api/contracts/export/" : "/api/vendors/export/";
       const response = await api.get(endpoint, {
         responseType: "blob",
       });
@@ -301,7 +301,7 @@ const AMC = () => {
 
   const downloadSampleFile = async (type) => {
     try {
-      const endpoint = type === 'contract' ? "/api/amc-contracts/sample-file/" : "/api/vendors/sample-file/";
+      const endpoint = type === 'contract' ? "/api/contracts/sample-file/" : "/api/vendors/sample-file/";
       const response = await api.get(endpoint, {
         responseType: "blob",
       });
@@ -337,6 +337,7 @@ const AMC = () => {
   const [isVendorsLoading, setIsVendorsLoading] = useState(false);
   const [isAssetsLoading, setIsAssetsLoading] = useState(false);
   const [isUnitsLoading, setIsUnitsLoading] = useState(false);
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
   const [viewMode, setViewMode] = useState("table"); // table, grid, kanban
   const [filterVendor, setFilterVendor] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -345,7 +346,7 @@ const AMC = () => {
   const [selectedAssets, setSelectedAssets] = useState([]);
   const [bulkFile, setBulkFile] = useState(null);
   const userData = JSON.parse(sessionStorage.getItem('user')) || JSON.parse(localStorage.getItem('user'));
-  const [bulkUnits, setBulkUnits] = useState(userData?.unit?.id ? [userData.unit.id] : []);
+  const [bulkUnits, setBulkUnits] = useState(userData?.unit?.id ? [userData.unit.id.toString()] : []);
   const [bulkUploadTab, setBulkUploadTab] = useState(0); // 0 for Contracts, 1 for Vendors
   const [formData, setFormData] = useState({
     contract_type: "AMC",
@@ -786,23 +787,24 @@ const AMC = () => {
 
     const formData = new FormData();
     formData.append("file", bulkFile);
-    if (bulkUploadTab === 0 && bulkUnits.length > 0) {
-      formData.append("units", JSON.stringify(bulkUnits));
+    if (bulkUnits.length > 0) {
+      bulkUnits.forEach(id => formData.append("unit_ids", id));
     }
 
     const endpoint = bulkUploadTab === 0 
-      ? "/api/amc-contracts/bulk-upload/" 
+      ? "/api/contracts/bulk-upload/" 
       : "/api/vendors/bulk-upload/";
 
+    setIsBulkUploading(true);
     try {
-      await api.post(endpoint, formData, {
+      const response = await api.post(endpoint, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
       toast({
         title: "Success",
-        description: `${bulkUploadTab === 0 ? "Contracts" : "Vendors"} uploaded successfully`,
+        description: response.data?.message || `${bulkUploadTab === 0 ? "Contracts" : "Vendors"} uploaded successfully`,
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -810,17 +812,32 @@ const AMC = () => {
       await fetchAllData();
       onBulkUploadClose();
       setBulkFile(null);
-      setBulkUnits(userData?.unit?.id ? [userData.unit.id] : []);
+      setBulkUnits(userData?.unit?.id ? [userData.unit.id.toString()] : []);
     } catch (error) {
       console.error(`Error uploading bulk ${bulkUploadTab === 0 ? "contracts" : "vendors"}:`, error);
+      
+      let errorMessage = `Failed to upload ${bulkUploadTab === 0 ? "contracts" : "vendors"}`;
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      }
+
       toast({
-        title: "Error",
-        description:
-          error.response?.data?.detail || `Failed to upload ${bulkUploadTab === 0 ? "contracts" : "vendors"}`,
+        title: "Upload Error",
+        description: errorMessage,
         status: "error",
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setIsBulkUploading(false);
     }
   };
 
@@ -1679,6 +1696,7 @@ const AMC = () => {
   return (
     <Box
       p={{ base: 2, md: 8 }}
+      pt={{ base: 4, md: 6 }}
       bg={bgColor}
       minH="100vh"
       mb={{ base: 8, md: 0 }}
@@ -1724,8 +1742,8 @@ const AMC = () => {
               </HStack>
             </MenuButton>
             <MenuList>
-              <MenuItem icon={<FaRegFileExcel />} onClick={handleExportData}>Export as Excel</MenuItem>
-              <MenuItem icon={<FaRegFilePdf />} onClick={handleExportData}>Export as PDF</MenuItem>
+              <MenuItem icon={<FaRegFileExcel />} onClick={handleExportData}>Export Vendors</MenuItem>
+              <MenuItem icon={<FaRegFilePdf />} onClick={handleExportData}>Export Contracts</MenuItem>
 
             </MenuList>
           </Menu>
@@ -1929,10 +1947,12 @@ const AMC = () => {
                               >
                                 {vendor.is_active ? "Active" : "Inactive"}
                               </Badge>
+                              
                             </HStack>
 
                             <VStack align="stretch" spacing={1}>
                               <Heading size="md">{vendor.name}</Heading>
+                              <HStack>
                               <Text color={textColor} fontSize="sm">
                                 {
                                   contracts.filter((c) => c.vendor === vendor.id)
@@ -1940,6 +1960,11 @@ const AMC = () => {
                                 }{" "}
                                 contracts
                               </Text>
+                              <Spacer/>
+                              <Tag color={"green"} size="md" mb={2}>
+                                ID: {vendor.id}
+                              </Tag>
+                              </HStack>
                             </VStack>
 
                             <Divider />
@@ -2285,199 +2310,212 @@ const AMC = () => {
 
       {/* Bulk Upload Modal */}
       <Modal isOpen={isBulkUploadOpen} onClose={() => {
-        onBulkUploadClose();
+  onBulkUploadClose();
+  setBulkFile(null);
+  setBulkUnits(userData?.unit?.id ? [userData.unit.id.toString()] : []);
+  setBulkUploadTab(0);
+}} size={{base:"sm",md:"lg"}} scrollBehavior="inside">
+  <ModalOverlay backdropFilter="blur(4px)" />
+  <ModalContent>
+    <ModalHeader>Bulk Upload Data</ModalHeader>
+    <ModalCloseButton isDisabled={isBulkUploading} />
+    <ModalBody>
+      
+      <Tabs isFitted colorScheme="blue" index={bulkUploadTab} onChange={(index) => {
+        if (isBulkUploading) return;
+        setBulkUploadTab(index);
         setBulkFile(null);
-        setBulkUnits(userData?.unit?.id ? [userData.unit.id] : []);
-        setBulkUploadTab(0);
-      }} size={{base:"sm",md:"lg"}} scrollBehavior="inside">
-        <ModalOverlay backdropFilter="blur(4px)" />
-        <ModalContent>
-          <ModalHeader>Bulk Upload Data</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <Tabs isFitted colorScheme="blue" onChange={(index) => setBulkUploadTab(index)}>
-              <TabList mb="1em">
-                <Tab>Contracts</Tab>
-                <Tab>Vendors</Tab>
-              </TabList>
-              <TabPanels>
-                <TabPanel p={0}>
-                  <VStack spacing={4} align="stretch">
-                    {userData?.role === "org_admin" && (
-                      <FormControl isRequired>
-                        <FormLabel fontWeight="bold">Select Units for Contracts</FormLabel>
-                        <Box 
-                          borderWidth="1px" 
-                          borderRadius="md" 
-                          p={3} 
-                          maxH="200px" 
-                          overflowY="auto"
-                          bg={useColorModeValue("white", "gray.700")}
-                        >
-                          <VStack align="start" spacing={2}>
-                            <Checkbox
-                              isChecked={bulkUnits.length === units.length && units.length > 0}
-                              isIndeterminate={bulkUnits.length > 0 && bulkUnits.length < units.length}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setBulkUnits(units.map(u => u.id));
-                                } else {
-                                  setBulkUnits([]);
-                                }
-                              }}
-                              colorScheme="blue"
-                              fontWeight="semibold"
-                            >
-                              Select All Units
-                            </Checkbox>
-                            <Divider />
-                            <CheckboxGroup 
-                              colorScheme="blue" 
-                              value={bulkUnits} 
-                              onChange={(values) => setBulkUnits(values)}
-                            >
-                              <SimpleGrid columns={1} spacing={2} width="100%">
-                                {units.map((unit) => (
-                                  <Checkbox key={unit.id} value={unit.id}>
-                                    {unit.name}
-                                  </Checkbox>
-                                ))}
-                              </SimpleGrid>
-                            </CheckboxGroup>
-                          </VStack>
-                        </Box>
-                        <Text fontSize="xs" color="gray.500" mt={1}>
-                          {bulkUnits.length} unit(s) selected
-                        </Text>
-                      </FormControl>
+      }}>
+        <TabList mb="1em">
+          <Tab>Contracts</Tab>
+          <Tab>Vendors</Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel p={0}>
+            <VStack spacing={4} align="stretch" key={`bulk-contracts-${bulkUploadTab}`}>
+               {userData?.role === "org_admin" && (
+        <FormControl isRequired mb={4}>
+          <FormLabel fontWeight="bold">Select Units</FormLabel>
+          <Box 
+            borderWidth="1px" 
+            borderRadius="md" 
+            p={3} 
+            maxH="200px" 
+            overflowY="auto"
+            bg={useColorModeValue("white", "gray.700")}
+          >
+            <VStack align="start" spacing={2}>
+              <Checkbox
+                isChecked={units.length > 0 && units.every(u => bulkUnits.includes(String(u.id)))}
+                isIndeterminate={units.some(u => bulkUnits.includes(String(u.id))) && !units.every(u => bulkUnits.includes(String(u.id)))}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setBulkUnits(units.map(u => String(u.id)));
+                  } else {
+                    setBulkUnits([]);
+                  }
+                }}
+                colorScheme="blue"
+                fontWeight="semibold"
+              >
+                Select All Units
+              </Checkbox>
+              <Divider />
+              <CheckboxGroup 
+                colorScheme="blue" 
+                value={bulkUnits} 
+                onChange={(values) => setBulkUnits(values)}
+              >
+                <SimpleGrid columns={1} spacing={2} width="100%">
+                  {units.map((unit) => (
+                    <Checkbox key={unit.id} value={String(unit.id)}>
+                      {unit.name}
+                    </Checkbox>
+                  ))}
+                </SimpleGrid>
+              </CheckboxGroup>
+            </VStack>
+          </Box>
+          <Text 
+            fontSize="xs" 
+            color={bulkUnits.length === 0 ? "red.500" : "gray.500"} 
+            fontWeight={bulkUnits.length === 0 ? "bold" : "normal"}
+            mt={1}
+          >
+            {bulkUnits.length === 0 ? "Please select at least one unit" : `${bulkUnits.length} unit(s) selected`}
+          </Text>
+        </FormControl>
+      )}
+              <Box
+                border="2px dashed"
+                borderColor="gray.300"
+                borderRadius="lg"
+                p={8}
+                textAlign="center"
+                width="100%"
+                _hover={{ borderColor: "blue.500" }}
+              >
+                <Input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={(e) => setBulkFile(e.target.files[0])}
+                  display="none"
+                  id="contract-bulk-upload"
+                />
+                <label htmlFor="contract-bulk-upload">
+                  <VStack spacing={3} cursor="pointer">
+                    <Icon as={FiUploadCloud} boxSize={10} color="blue.500" />
+                    <Text fontWeight="medium">Upload Contracts File</Text>
+                    <Text fontSize="sm" color={textColor}>
+                      Supported formats: CSV, Excel (.xlsx, .xls)
+                    </Text>
+                    {bulkFile && bulkUploadTab === 0 && (
+                      <Badge colorScheme="green">
+                        Selected: {bulkFile.name}
+                      </Badge>
                     )}
-
-                    <Box
-                      border="2px dashed"
-                      borderColor="gray.300"
-                      borderRadius="lg"
-                      p={8}
-                      textAlign="center"
-                      width="100%"
-                      _hover={{ borderColor: "blue.500" }}
-                    >
-                      <Input
-                        type="file"
-                        accept=".csv,.xlsx,.xls"
-                        onChange={(e) => setBulkFile(e.target.files[0])}
-                        display="none"
-                        id="contract-bulk-upload"
-                      />
-                      <label htmlFor="contract-bulk-upload">
-                        <VStack spacing={3} cursor="pointer">
-                          <Icon as={FiUploadCloud} boxSize={10} color="blue.500" />
-                          <Text fontWeight="medium">Upload Contracts File</Text>
-                          <Text fontSize="sm" color={textColor}>
-                            Supported formats: CSV, Excel (.xlsx, .xls)
-                          </Text>
-                          {bulkFile && bulkUploadTab === 0 && (
-                            <Badge colorScheme="green">
-                              Selected: {bulkFile.name}
-                            </Badge>
-                          )}
-                        </VStack>
-                      </label>
-                    </Box>
-
-                    <Alert status="info" borderRadius="md">
-                      <AlertIcon />
-                      <Box flex="1">
-                        <AlertTitle>Contracts Template Info</AlertTitle>
-                        <AlertDescription fontSize="sm">
-                          Required columns: contract_type, vendor, contract_number,
-                          start_date, end_date, sla_hours
-                        </AlertDescription>
-                      </Box>
-                      <Button
-                        size="sm"
-                        leftIcon={<FiDownload />}
-                        variant="ghost"
-                        colorScheme="blue"
-                        onClick={() => downloadSampleFile('contract')}
-                      >
-                        Sample
-                      </Button>
-                    </Alert>
                   </VStack>
-                </TabPanel>
+                </label>
+              </Box>
 
-                <TabPanel p={0}>
-                  <VStack spacing={4} align="stretch">
-                    <Box
-                      border="2px dashed"
-                      borderColor="gray.300"
-                      borderRadius="lg"
-                      p={8}
-                      textAlign="center"
-                      width="100%"
-                      _hover={{ borderColor: "blue.500" }}
-                    >
-                      <Input
-                        type="file"
-                        accept=".csv,.xlsx,.xls"
-                        onChange={(e) => setBulkFile(e.target.files[0])}
-                        display="none"
-                        id="vendor-bulk-upload"
-                      />
-                      <label htmlFor="vendor-bulk-upload">
-                        <VStack spacing={3} cursor="pointer">
-                          <Icon as={FiUploadCloud} boxSize={10} color="blue.500" />
-                          <Text fontWeight="medium">Upload Vendors File</Text>
-                          <Text fontSize="sm" color={textColor}>
-                            Supported formats: CSV, Excel (.xlsx, .xls)
-                          </Text>
-                          {bulkFile && bulkUploadTab === 1 && (
-                            <Badge colorScheme="green">
-                              Selected: {bulkFile.name}
-                            </Badge>
-                          )}
-                        </VStack>
-                      </label>
-                    </Box>
+              <Alert status="info" borderRadius="md">
+                <AlertIcon />
+                <Box flex="1">
+                  <AlertTitle>Contracts Template Info</AlertTitle>
+                  <AlertDescription fontSize="sm">
+                    Required columns: contract_type, vendor, contract_number,
+                    start_date, end_date, sla_hours
+                  </AlertDescription>
+                </Box>
+                <Button
+                  size="sm"
+                  leftIcon={<FiDownload />}
+                  variant="ghost"
+                  colorScheme="blue"
+                  onClick={() => downloadSampleFile('contract')}
+                >
+                  Sample
+                </Button>
+              </Alert>
+            </VStack>
+          </TabPanel>
 
-                    <Alert status="info" borderRadius="md">
-                      <AlertIcon />
-                      <Box flex="1">
-                        <AlertTitle>Vendors Template Info</AlertTitle>
-                        <AlertDescription fontSize="sm">
-                          Required columns: name, email, phone, address
-                        </AlertDescription>
-                      </Box>
-                      <Button
-                        size="sm"
-                        leftIcon={<FiDownload />}
-                        variant="ghost"
-                        colorScheme="blue"
-                        onClick={() => downloadSampleFile('vendor')}
-                      >
-                        Sample
-                      </Button>
-                    </Alert>
+          <TabPanel p={0}>
+            <VStack spacing={4} align="stretch" key={`bulk-vendors-${bulkUploadTab}`}>
+              <Box
+                border="2px dashed"
+                borderColor="gray.300"
+                borderRadius="lg"
+                p={8}
+                textAlign="center"
+                width="100%"
+                _hover={{ borderColor: "blue.500" }}
+              >
+                <Input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={(e) => setBulkFile(e.target.files[0])}
+                  display="none"
+                  id="vendor-bulk-upload"
+                />
+                <label htmlFor="vendor-bulk-upload">
+                  <VStack spacing={3} cursor="pointer">
+                    <Icon as={FiUploadCloud} boxSize={10} color="blue.500" />
+                    <Text fontWeight="medium">Upload Vendors File</Text>
+                    <Text fontSize="sm" color={textColor}>
+                      Supported formats: CSV, Excel (.xlsx, .xls)
+                    </Text>
+                    {bulkFile && bulkUploadTab === 1 && (
+                      <Badge colorScheme="green">
+                        Selected: {bulkFile.name}
+                      </Badge>
+                    )}
                   </VStack>
-                </TabPanel>
-              </TabPanels>
-            </Tabs>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onBulkUploadClose}>
-              Cancel
-            </Button>
-            <Button
-              colorScheme="blue"
-              onClick={handleBulkUpload}
-              isDisabled={!bulkFile}
-            >
-              Upload & Process
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+                </label>
+              </Box>
 
+              <Alert status="info" borderRadius="md">
+                <AlertIcon />
+                <Box flex="1">
+                  <AlertTitle>Vendors Template Info</AlertTitle>
+                  <AlertDescription fontSize="sm">
+                    Required columns: name, email, phone, address
+                  </AlertDescription>
+                </Box>
+                <Button
+                  size="sm"
+                  leftIcon={<FiDownload />}
+                  variant="ghost"
+                  colorScheme="blue"
+                  onClick={() => downloadSampleFile('vendor')}
+                >
+                  Sample
+                </Button>
+              </Alert>
+            </VStack>
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
+    </ModalBody>
+    <ModalFooter>
+      <Button variant="ghost" mr={3} onClick={onBulkUploadClose} isDisabled={isBulkUploading}>
+        Cancel
+      </Button>
+      <Button
+        colorScheme="blue"
+        onClick={handleBulkUpload}
+        isLoading={isBulkUploading}
+        loadingText="Uploading..."
+        isDisabled={
+          !bulkFile || 
+          (userData?.role === "org_admin" && bulkUnits.length === 0)
+        }
+      >
+        Upload & Process
+      </Button>
+    </ModalFooter>
+  </ModalContent>
+</Modal>
       {/* Contract Details Modal */}
       <Modal
         isOpen={isDetailOpen}

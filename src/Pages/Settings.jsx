@@ -212,7 +212,7 @@ const Settings = () => {
   ];
 
   return (
-    <Box bg={bgColor} minH="100vh" p={{ base: 4, md: 8 }} pt={{ base: 0, md: 8 }} >
+    <Box bg={bgColor} minH="100vh" p={{ base: 6, md: 8 }} pt={{ base: 4, md: 8 }} >
       
         <VStack spacing={6} align="stretch">
           <HStack spacing={3}>
@@ -380,16 +380,17 @@ const Settings = () => {
               {assetSchema.length === 0 ? (
                 <Text textAlign="center">No custom fields yet.</Text>
               ) : (
-                <Table>
-                  <Thead>
+                <Box overflowX={"auto"}>
+                <Table >
+                  <Thead bg={"gray.200"}>
                     <Tr>
-                      <Th>Key</Th>
-                      <Th>Label</Th>
-                      <Th>Type</Th>
-                      <Th>Category</Th>
-                      <Th textAlign="right">Actions</Th>
+                      <Th color={"black"}>Key</Th>
+                      <Th color={"black"}>Label</Th>
+                      <Th color={"black"}>Type</Th>
+                      <Th color={"black"}>Category</Th>
+                      <Th textAlign="right" color={"black"}>Actions</Th>
                     </Tr>
-                  </Thead>
+                  </Thead >
                   <Tbody>
                     {assetSchema.map((field, index) => (
                       <Tr key={index}>
@@ -413,6 +414,7 @@ const Settings = () => {
                     ))}
                   </Tbody>
                 </Table>
+                </Box>
               )}
             </CardBody>
           </Card>

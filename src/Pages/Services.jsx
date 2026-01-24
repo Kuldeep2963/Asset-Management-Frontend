@@ -596,12 +596,12 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   );
 
   return (
-    <Box bg={bgColor} minH="100vh" mb={{base:8,md:0}}>
+    <Box bg={bgColor} p={{base:0,md:6}} minH="100vh" pt={{base:4,md:0}} mb={{base:8,md:0}}>
       <Container maxW="container.2xl" py={{ base: 4, md: 8 }} pt={{ base: 0, md: 8 }}>
         {/* Header */}
         <Flex justify="space-between" align="center" mb={8} flexDirection={{base:"column",md:"row"}}>
           <VStack align="start" spacing={1} mb={4}>
-            <Heading as="h1" size={{base:"lg",md:"xl"}} color={headingColor}>
+            <Heading as="h1" size={{base:"lg",md:"lg"}} color={headingColor}>
               Asset Service Management
             </Heading>
             <Text color={textColor}>

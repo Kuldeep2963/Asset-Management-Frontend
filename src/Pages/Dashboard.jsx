@@ -261,8 +261,8 @@ const Dashboard = () => {
     <Box
       minH="100vh"
       bg={bgColor}
-      p={{ base: 4, md: 6 }}
-      pt={{ base: 0, md: 6 }}
+      p={{ base: 4, md: 8 }}
+      pt={{ base: 4, md: 6 }}
     >
       {/* Dashboard Header */}
       <Box mb={6}>

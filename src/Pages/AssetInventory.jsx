@@ -224,7 +224,7 @@ const AssetInventory = () => {
       bg={bgColor}
       minH="100vh"
       p={{ base: 2, md: 8 }}
-      pt={{ base: 0, md: 8 }}
+      pt={{ base: 4, md: 8 }}
     >
       <Container maxW="8xl">
         <VStack spacing={6} align="stretch">

@@ -961,7 +961,7 @@ const Issue = () => {
       mb={{ base: 8, md: 0 }}
       bg={bgColor}
       py={{ base: 4, md: 8 }}
-      pt={{ base: 0, md: 8 }}
+      pt={{ base: 4, md: 8 }}
       px={{ base: 4, md: 8 }}
     >
       <CommentModal

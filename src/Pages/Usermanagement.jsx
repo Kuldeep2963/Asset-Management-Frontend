@@ -442,8 +442,6 @@ const UserManagement = () => {
     }
   }, [userRole]);
 
-
-
   // Single API Function to fetch all user management data
   const fetchUserManagementData = async () => {
     setLoading({
@@ -468,7 +466,8 @@ const UserManagement = () => {
         updateStats("totalAdmins", orgAdmins.length);
       } else if (userRole === "org_admin") {
         const unitsData = data.units?.results || data.units || [];
-        const unitAdminsData = data.unit_admins?.results || data.unit_admins || [];
+        const unitAdminsData =
+          data.unit_admins?.results || data.unit_admins || [];
         setUnits(unitsData);
         setUnitAdmins(unitAdminsData);
 
@@ -482,43 +481,41 @@ const UserManagement = () => {
         );
         setDepartments(allDepts);
 
-        const serviceUsers = data.service_users?.results || data.service_users || [];
+        const serviceUsers =
+          data.service_users?.results || data.service_users || [];
         const viewers = data.viewers?.results || data.viewers || [];
         setUsers([...serviceUsers, ...viewers]);
         updateStats("totalUnits", unitsData.length);
         updateStats("totalUnitAdmins", unitAdminsData.length);
         updateStats("totalDepartments", allDepts.length);
-        updateStats(
-          "totalUsers",
-          serviceUsers.length + viewers.length,
-        );
-        const activeUsers = [
-          ...serviceUsers,
-          ...viewers,
-        ].filter((u) => u.is_active).length;
+        updateStats("totalUsers", serviceUsers.length + viewers.length);
+        const activeUsers = [...serviceUsers, ...viewers].filter(
+          (u) => u.is_active,
+        ).length;
         updateStats("activeUsers", activeUsers);
       } else if (userRole === "unit_admin") {
         const unitData = data.unit || {};
         setUnits([unitData]);
-        const unitDepts = (unitData.departments?.results || unitData.departments || []).map((d) => ({
+        const unitDepts = (
+          unitData.departments?.results ||
+          unitData.departments ||
+          []
+        ).map((d) => ({
           ...d,
           unit_id: unitData.id,
           unit_name: unitData.name,
         }));
         setDepartments(unitDepts);
 
-        const serviceUsers = data.service_users?.results || data.service_users || [];
+        const serviceUsers =
+          data.service_users?.results || data.service_users || [];
         const viewers = data.viewers?.results || data.viewers || [];
         setUsers([...serviceUsers, ...viewers]);
         updateStats("totalDepartments", unitDepts.length);
-        updateStats(
-          "totalUsers",
-          serviceUsers.length + viewers.length,
-        );
-        const activeUsers = [
-          ...serviceUsers,
-          ...viewers,
-        ].filter((u) => u.is_active).length;
+        updateStats("totalUsers", serviceUsers.length + viewers.length);
+        const activeUsers = [...serviceUsers, ...viewers].filter(
+          (u) => u.is_active,
+        ).length;
         updateStats("activeUsers", activeUsers);
       }
     } catch (error) {
@@ -541,12 +538,9 @@ const UserManagement = () => {
       });
     }
   };
-  console.log(userData)
+  console.log(userData);
   const selectedUnitDepartments =
-  units.find(
-    (u) => u.id === Number(newUser.unit)
-  )?.departments || [];
-
+    units.find((u) => u.id === Number(newUser.unit))?.departments || [];
 
   const updateStats = (key, value) => {
     setStats((prev) => ({ ...prev, [key]: value }));
@@ -574,7 +568,10 @@ const UserManagement = () => {
       };
 
       if (isEditingOrg) {
-        await api.patch(`/api/organizations/${editingOrgId}/`, organizationData);
+        await api.patch(
+          `/api/organizations/${editingOrgId}/`,
+          organizationData,
+        );
         toast({
           title: "Organization updated successfully",
           status: "success",
@@ -593,7 +590,9 @@ const UserManagement = () => {
       setNewOrganization({ name: "", status: "inactive" });
     } catch (error) {
       toast({
-        title: isEditingOrg ? "Error updating organization" : "Error adding organization",
+        title: isEditingOrg
+          ? "Error updating organization"
+          : "Error adding organization",
         description: error.response?.data?.message || error.message,
         status: "error",
         duration: 5000,
@@ -797,7 +796,9 @@ const UserManagement = () => {
       onUnitAdminClose();
     } catch (error) {
       toast({
-        title: isEditingUnitAdmin ? "Error updating unit admin" : "Error adding unit admin",
+        title: isEditingUnitAdmin
+          ? "Error updating unit admin"
+          : "Error adding unit admin",
         description: error.response?.data?.message || error.message,
         status: "error",
         duration: 5000,
@@ -843,7 +844,8 @@ const UserManagement = () => {
   const handleDeleteUser = (userId) => {
     triggerConfirm({
       title: "Delete User",
-      message: "Are you sure you want to delete this user? This action cannot be undone.",
+      message:
+        "Are you sure you want to delete this user? This action cannot be undone.",
       onConfirm: async () => {
         try {
           await api.delete(`/api/users/${userId}/`);
@@ -915,7 +917,9 @@ const UserManagement = () => {
       });
     } catch (error) {
       toast({
-        title: isEditingDept ? "Error updating department" : "Error adding department",
+        title: isEditingDept
+          ? "Error updating department"
+          : "Error adding department",
         description: error.response?.data?.message || error.message,
         status: "error",
         duration: 5000,
@@ -926,7 +930,8 @@ const UserManagement = () => {
   const handleDeleteOrganization = (id) => {
     triggerConfirm({
       title: "Delete Organization",
-      message: "Are you sure you want to delete this organization? This action cannot be undone.",
+      message:
+        "Are you sure you want to delete this organization? This action cannot be undone.",
       onConfirm: async () => {
         try {
           await api.delete(`/api/organizations/${id}/`);
@@ -1084,8 +1089,14 @@ const UserManagement = () => {
       phone: user.phone || "",
       role: user.role || "",
       unit: user.unit_id || user.unit?.id || "",
-      departments: user.departments ? user.departments.map(d => typeof d === 'object' ? d.id : d) : [],
-      organization: user.organization_id || user.organization?.id || userData?.organization?.id || "",
+      departments: user.departments
+        ? user.departments.map((d) => (typeof d === "object" ? d.id : d))
+        : [],
+      organization:
+        user.organization_id ||
+        user.organization?.id ||
+        userData?.organization?.id ||
+        "",
     });
     onUserOpen();
   };
@@ -1104,7 +1115,10 @@ const UserManagement = () => {
     try {
       // Map 'admins' to 'users' endpoint and ensure /api/ prefix
       const apiType = type === "admins" ? "users" : type;
-      const endpoint = type === "units" || type === "departments" ?`/api/${apiType}/${id}/status/`:`/api/${apiType}/${id}/`;
+      const endpoint =
+        type === "units" || type === "departments"
+          ? `/api/${apiType}/${id}/status/`
+          : `/api/${apiType}/${id}/`;
       const newStatus = !currentStatus;
 
       // Organizations use 'status' field, others use 'is_active'
@@ -1140,7 +1154,7 @@ const UserManagement = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `users_export_${Date.now()}.csv`);
+      link.setAttribute("download", `users_export_${Date.now()}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -1186,7 +1200,9 @@ const UserManagement = () => {
     const matchesSearch = dept.name
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
-    const matchesUnit = selectedUnitId ? String(dept.unit_id) === String(selectedUnitId) : true;
+    const matchesUnit = selectedUnitId
+      ? String(dept.unit_id) === String(selectedUnitId)
+      : true;
     return matchesSearch && matchesUnit;
   });
 
@@ -1199,45 +1215,44 @@ const UserManagement = () => {
     </VStack>
   );
   const statsConfig = {
-  superadmin: {
-    columns: 6,
-    items: [
-      { key: "organizations", label: "Organizations", color: "teal" },
-      { key: "admins", label: "Admins", color: "blue" },
-      { key: "units", label: "Units", color: "orange" },
-      { key: "unitAdmins", label: "Unit Admins", color: "purple" },
-      { key: "totalUsers", label: "Total Users", color: "cyan" },
-      { key: "activeUsers", label: "Active Users", color: "green" },
-    ],
-  },
-  org_admin: {
-    columns: 5,
-    items: [
-      { key: "admins", label: "Admins", color: "blue" },
-      { key: "units", label: "Units", color: "orange" },
-      { key: "unitAdmins", label: "Unit Admins", color: "purple" },
-      { key: "totalUsers", label: "Total Users", color: "cyan" },
-      { key: "activeUsers", label: "Active Users", color: "green" },
-    ],
-  },
-  unit_admin: {
-    columns: 3,
-    items: [
-      { key: "units", label: "Units", color: "orange" },
-      { key: "totalUsers", label: "Total Users", color: "cyan" },
-      { key: "activeUsers", label: "Active Users", color: "green" },
-    ],
-  },
-};
+    superadmin: {
+      columns: 6,
+      items: [
+        { key: "organizations", label: "Organizations", color: "teal" },
+        { key: "admins", label: "Admins", color: "blue" },
+        { key: "units", label: "Units", color: "orange" },
+        { key: "unitAdmins", label: "Unit Admins", color: "purple" },
+        { key: "totalUsers", label: "Total Users", color: "cyan" },
+        { key: "activeUsers", label: "Active Users", color: "green" },
+      ],
+    },
+    org_admin: {
+      columns: 5,
+      items: [
+        { key: "admins", label: "Admins", color: "blue" },
+        { key: "units", label: "Units", color: "orange" },
+        { key: "unitAdmins", label: "Unit Admins", color: "purple" },
+        { key: "totalUsers", label: "Total Users", color: "cyan" },
+        { key: "activeUsers", label: "Active Users", color: "green" },
+      ],
+    },
+    unit_admin: {
+      columns: 3,
+      items: [
+        { key: "units", label: "Units", color: "orange" },
+        { key: "totalUsers", label: "Total Users", color: "cyan" },
+        { key: "activeUsers", label: "Active Users", color: "green" },
+      ],
+    },
+  };
 
-const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
-
+  const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
 
   return (
     <Box
       mb={{ base: "50px", md: "0" }}
       py={{ base: 4, md: 8 }}
-      pt={{ base: 0, md: 8 }}
+      pt={{ base: 4, md: 8 }}
       px={{ base: 4, md: 8 }}
       minH="100vh"
       bg="gray.50"
@@ -1245,7 +1260,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
       {/* Header Section */}
       <Box mb={6}>
         <Flex justify="space-between" align="center" mb={2}>
-          <Heading size={{ base: "md", md: "xl" }}>User Management</Heading>
+          <Heading size={{ base: "lg", md: "xl" }}>User Management</Heading>
           <HStack spacing={2}>
             <Button
               leftIcon={<FiRefreshCw />}
@@ -1281,30 +1296,30 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
       </Box>
       {/* Stats Overview */}
 
-<SimpleGrid 
-  columns={{ base: 2, md: 3, lg: userConfig.columns }} 
-  spacing={4} 
-  mb={6}
->
-  {userConfig.items.map((item, idx) => (
-    <Card key={idx} bg="white" border="1px" borderColor="gray.200">
-      <CardBody>
-        <Stat>
-          <StatLabel>{item.label}</StatLabel>
-          <StatNumber color={`${item.color}.500`}>
-            {loading[item.key] ? (
-              <Skeleton height="20px" width="50px" />
-            ) : (
-              stats[`total${item.label.replace(/\s+/g, '')}`] || 
-              stats[item.key] ||
-              0
-            )}
-          </StatNumber>
-        </Stat>
-      </CardBody>
-    </Card>
-  ))}
-</SimpleGrid>
+      <SimpleGrid
+        columns={{ base: 2, md: 3, lg: userConfig.columns }}
+        spacing={4}
+        mb={6}
+      >
+        {userConfig.items.map((item, idx) => (
+          <Card key={idx} bg="white" border="1px" borderColor="gray.200">
+            <CardBody>
+              <Stat>
+                <StatLabel>{item.label}</StatLabel>
+                <StatNumber color={`${item.color}.500`}>
+                  {loading[item.key] ? (
+                    <Skeleton height="20px" width="50px" />
+                  ) : (
+                    stats[`total${item.label.replace(/\s+/g, "")}`] ||
+                    stats[item.key] ||
+                    0
+                  )}
+                </StatNumber>
+              </Stat>
+            </CardBody>
+          </Card>
+        ))}
+      </SimpleGrid>
 
       {/* Main Content with Tabs */}
       {userRole ? (
@@ -1524,9 +1539,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                           <Tbody>
                             {filteredOrganizations.map((org) => (
                               <Tr key={org.id}>
-                                <Td fontWeight="medium">
-                                  {org.name}
-                                </Td>
+                                <Td fontWeight="medium">{org.name}</Td>
                                 <Td>
                                   <Flex align="center" gap={2}>
                                     <Badge
@@ -1656,13 +1669,9 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                       />
                                       <Box>
                                         <Text fontWeight="bold">
-                                          {admin.first_name}{" "}
-                                          {admin.last_name}
+                                          {admin.first_name} {admin.last_name}
                                         </Text>
-                                        <Text
-                                          fontSize="xs"
-                                          color="gray.500"
-                                        >
+                                        <Text fontSize="xs" color="gray.500">
                                           {admin.organization?.name}
                                         </Text>
                                       </Box>
@@ -1849,18 +1858,18 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                 mb={2}
                               >
                                 <Box>
+                                  <HStack spacing={4}>
                                   <Heading size="sm" mb={1}>
                                     {unit.name}
                                   </Heading>
-                                  <Tag size="sm" mb={2}>
-                                    {unit.code}
+                                  <Tag color={"green"} size="md" mb={2}>
+                                     ID: {unit.id}
                                   </Tag>
+                                  </HStack>
                                 </Box>
                                 <Flex align="center" gap={2}>
                                   <Badge
-                                    colorScheme={
-                                      unit.status ? "green" : "gray"
-                                    }
+                                    colorScheme={unit.status ? "green" : "gray"}
                                   >
                                     {unit.status ? "active" : "inactive"}
                                   </Badge>
@@ -1926,9 +1935,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                     size="sm"
                                     variant="outline"
                                     colorScheme="red"
-                                    onClick={() =>
-                                      handleDeleteUnit(unit.id)
-                                    }
+                                    onClick={() => handleDeleteUnit(unit.id)}
                                   />
                                 </HStack>
                               </HStack>
@@ -2003,10 +2010,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                           {unitAdmin.first_name}{" "}
                                           {unitAdmin.last_name}
                                         </Text>
-                                        <Text
-                                          fontSize="xs"
-                                          color="gray.500"
-                                        >
+                                        <Text fontSize="xs" color="gray.500">
                                           {unitAdmin.unit?.name}
                                         </Text>
                                       </Box>
@@ -2038,9 +2042,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
 
                                   <HStack>
                                     <FiMail size={14} />
-                                    <Text fontSize="sm">
-                                      {unitAdmin.email}
-                                    </Text>
+                                    <Text fontSize="sm">{unitAdmin.email}</Text>
                                   </HStack>
 
                                   <Flex justify="space-between">
@@ -2123,9 +2125,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                     </Text>
                                   </HStack>
                                 </Td>
-                                <Td>
-                                  {unitAdmin.email}
-                                </Td>
+                                <Td>{unitAdmin.email}</Td>
                                 <Td>{unitAdmin.unit && unitAdmin.unit.name}</Td>
 
                                 <Td>
@@ -2204,7 +2204,13 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
               <TabPanel p={0}>
                 <Card border="1px" borderColor="gray.200">
                   <CardBody>
-                    <Flex justify="space-between" align="center" mb={4} wrap="wrap" gap={4}>
+                    <Flex
+                      justify="space-between"
+                      align="center"
+                      mb={4}
+                      wrap="wrap"
+                      gap={4}
+                    >
                       <Heading size="md">Departments</Heading>
                       <HStack spacing={4}>
                         {userRole === "org_admin" && (
@@ -2229,7 +2235,10 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                           onClick={() => {
                             setNewDepartment({
                               name: "",
-                              unit: userRole === "unit_admin" ? userData?.unit?.id : (selectedUnitId || ""),
+                              unit:
+                                userRole === "unit_admin"
+                                  ? userData?.unit?.id
+                                  : selectedUnitId || "",
                             });
                             onDepartmentOpen();
                           }}
@@ -2294,7 +2303,10 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                     <Text fontSize="sm" color="gray.500">
                                       Assets
                                     </Text>
-                                    <Badge colorScheme="orange" variant="subtle">
+                                    <Badge
+                                      colorScheme="orange"
+                                      variant="subtle"
+                                    >
                                       {dept.asset_count || 0}
                                     </Badge>
                                   </HStack>
@@ -2305,20 +2317,20 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                     <Flex align="center" gap={2}>
                                       <Badge
                                         colorScheme={
-                                          dept.is_active ? "green" : "gray"
+                                          dept.status ? "green" : "gray"
                                         }
                                         variant="subtle"
                                       >
-                                        {dept.is_active ? "Active" : "Inactive"}
+                                        {dept.status ? "Active" : "Inactive"}
                                       </Badge>
                                       <Switch
                                         size="sm"
-                                        isChecked={dept.is_active}
+                                        isChecked={dept.status}
                                         onChange={() =>
                                           handleToggleStatus(
                                             "departments",
                                             dept.id,
-                                            dept.is_active,
+                                            dept.status,
                                           )
                                         }
                                       />
@@ -2354,6 +2366,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                         >
                           <Thead bg={"gray.200"}>
                             <Tr>
+                              <Th>Id</Th>
                               <Th>Name</Th>
                               <Th>Unit</Th>
                               <Th>Total Users</Th>
@@ -2365,12 +2378,15 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                           <Tbody>
                             {filteredDepartments.map((dept) => (
                               <Tr key={dept.id}>
-                                <Td fontWeight="medium">
-                                  {dept.name}
+                                <Td fontWeight={"semibold"} color={"green"}>{dept.id}</Td>
+                                <Td fontWeight="medium">{dept.name}</Td>
+                                <Td>{dept.unit_name}</Td>
+                                <Td fontWeight={"semibold"} color={"blue.600"}>
+                                  {dept.user_count}
                                 </Td>
-                                <Td>{dept.unit_name }</Td>
-                                <Td fontWeight={"semibold"} color={"blue.600"}>{dept.user_count}</Td>
-                                <Td fontWeight={"semibold"} color={"green.600"}>{dept.asset_count}</Td>
+                                <Td fontWeight={"semibold"} color={"green.600"}>
+                                  {dept.asset_count}
+                                </Td>
                                 <Td>
                                   <Flex align="center" gap={2}>
                                     <Badge
@@ -2379,9 +2395,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                       }
                                       variant="subtle"
                                     >
-                                      {dept.status
-                                        ? "Active"
-                                        : "Inactive"}
+                                      {dept.status ? "Active" : "Inactive"}
                                     </Badge>
                                     <Switch
                                       size="sm"
@@ -2510,19 +2524,47 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                   </HStack>
 
                                   <Box>
-                                    <Text fontSize="xs" color="gray.500">
-                                      Departments
-                                    </Text>
-                                    <Text fontSize="sm">
-                                      {user.departments &&
-                                      user.departments.length > 0
-                                        ? user.departments
-                                            .map((dep) => dep.name)
-                                            .join(", ")
-                                        : "N/A"}
-                                    </Text>
-                                  </Box>
+                                    <Flex
+                                      justify={"space-between"}
+                                      direction="row"
+                                      gap={2}
+                                    >
+                                      <Flex
+                                        direction={"column"}
+                                        align="left"
+                                        gap={0}
+                                      >
+                                        <Text
+                                          fontSize="xs"
+                                          color="gray.500"
+                                          minW="60px"
+                                        >
+                                          Unit
+                                        </Text>
+                                        <Text fontSize="sm">
+                                          {user.unit.name} (ID: {user.unit.id})
+                                        </Text>
+                                      </Flex>
 
+                                      <Flex align="right" direction={"column"}>
+                                        <Text
+                                          fontSize="xs"
+                                          color="gray.500"
+                                          minW="60px"
+                                        >
+                                          Departments
+                                        </Text>
+                                        <Text fontSize="sm">
+                                          {user.departments &&
+                                          user.departments.length > 0
+                                            ? user.departments
+                                                .map((dep) => dep.name)
+                                                .join(", ")
+                                            : "N/A"}
+                                        </Text>
+                                      </Flex>
+                                    </Flex>
+                                  </Box>
                                   <Flex justify="space-between" align="center">
                                     <Text fontSize="sm" color="gray.500">
                                       Status
@@ -2556,9 +2598,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                       size="sm"
                                       variant="ghost"
                                       colorScheme="red"
-                                      onClick={() =>
-                                        handleDeleteUser(user.id)
-                                      }
+                                      onClick={() => handleDeleteUser(user.id)}
                                     />
                                   </Flex>
                                 </VStack>
@@ -2577,6 +2617,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                               <Th color="gray.700">Name</Th>
                               <Th color="gray.700">Email</Th>
                               <Th color="gray.700">Role</Th>
+                              <Th color="gray.700">Unit</Th>
                               <Th color="gray.700">Department</Th>
                               <Th color="gray.700">Status</Th>
                               <Th color="gray.700">Actions</Th>
@@ -2602,7 +2643,10 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                     {user.role}
                                   </Tag>
                                 </Td>
-                                <Td>
+                                <Td color={"green.600"}>
+                                  {user.unit.name} (ID: {user.unit.id})
+                                </Td>
+                                <Td color={"orange.500"}>
                                   {user.departments &&
                                   user.departments.length > 0
                                     ? user.departments
@@ -2648,9 +2692,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                       size="sm"
                                       variant="ghost"
                                       colorScheme="red"
-                                      onClick={() =>
-                                        handleDeleteUser(user.id)
-                                      }
+                                      onClick={() => handleDeleteUser(user.id)}
                                     />
                                   </HStack>
                                 </Td>
@@ -2803,9 +2845,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                       size="sm"
                                       variant="ghost"
                                       colorScheme="red"
-                                      onClick={() =>
-                                        handleDeleteUser(user.id)
-                                      }
+                                      onClick={() => handleDeleteUser(user.id)}
                                     />
                                   </Flex>
                                 </VStack>
@@ -2892,9 +2932,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                                     <IconButton
                                       aria-label="Delete user"
                                       icon={<FiTrash2 />}
-                                      onClick={() =>
-                                        handleDeleteUser(user.id)
-                                      }
+                                      onClick={() => handleDeleteUser(user.id)}
                                       size="sm"
                                       variant="ghost"
                                       colorScheme="red"
@@ -2968,7 +3006,9 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
         <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader bg="teal.600" color="white">
-            {isEditingAdmin ? "Edit Organization Admin" : "Add Organization Admin"}
+            {isEditingAdmin
+              ? "Edit Organization Admin"
+              : "Add Organization Admin"}
           </ModalHeader>
           <ModalCloseButton color="white" />
           <ModalBody>
@@ -3107,7 +3147,9 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
         <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader bg="teal.600" color="white">
-            {isEditingUnitAdmin ? "Edit Unit Administrator" : "Add Unit Administrator"}
+            {isEditingUnitAdmin
+              ? "Edit Unit Administrator"
+              : "Add Unit Administrator"}
           </ModalHeader>
           <ModalCloseButton color="white" />
           <ModalBody>
@@ -3194,24 +3236,7 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                 </HStack>
               </FormControl>
 
-              {/* <FormControl>
-                <FormLabel>User Limit</FormLabel>
-                <NumberInput 
-                  min={1} 
-                  max={100} 
-                  value={newUnitAdmin.user_limit}
-                  onChange={(value) => setNewUnitAdmin({...newUnitAdmin, user_limit: parseInt(value)})}
-                >
-                  <NumberInputField />
-                  <NumberInputStepper>
-                    <NumberIncrementStepper />
-                    <NumberDecrementStepper />
-                  </NumberInputStepper>
-                </NumberInput>
-                <Text fontSize="sm" color="gray.600" mt={1}>
-                  Maximum number of users this admin can create
-                </Text>
-              </FormControl> */}
+             
             </VStack>
           </ModalBody>
           <ModalFooter>
@@ -3253,7 +3278,9 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                   >
                     {units.map((unit) => (
                       <option key={unit.id} value={unit.id}>
-                        {unit.name} {unit.organization_name && `(${unit.organization_name})`}
+                        {unit.name}{" "}
+                        {unit.organization_name &&
+                          `(${unit.organization_name})`}
                       </option>
                     ))}
                   </Select>
@@ -3314,41 +3341,40 @@ const userConfig = statsConfig[userRole] || statsConfig.unit_admin;
                 </Select>
               </FormControl>
               <FormControl>
-  <FormLabel>Department(s)</FormLabel>
+                <FormLabel>Department(s)</FormLabel>
 
-  {userRole === "org_admin" && !newUser.unit ? (
-    <Text fontSize="sm" color="gray.500">
-      Please select a unit first
-    </Text>
-  ) : (
-    <VStack align="start" spacing={2}>
-      {selectedUnitDepartments.map((dept) => (
-        <Checkbox
-          key={dept.id}
-          isChecked={newUser.departments.includes(dept.id)}
-          onChange={(e) => {
-            if (e.target.checked) {
-              setNewUser({
-                ...newUser,
-                departments: [...newUser.departments, dept.id],
-              });
-            } else {
-              setNewUser({
-                ...newUser,
-                departments: newUser.departments.filter(
-                  (id) => id !== dept.id
-                ),
-              });
-            }
-          }}
-        >
-          {dept.name}
-        </Checkbox>
-      ))}
-    </VStack>
-  )}
-</FormControl>
-
+                {userRole === "org_admin" && !newUser.unit ? (
+                  <Text fontSize="sm" color="gray.500">
+                    Please select a unit first
+                  </Text>
+                ) : (
+                  <VStack align="start" spacing={2}>
+                    {selectedUnitDepartments.map((dept) => (
+                      <Checkbox
+                        key={dept.id}
+                        isChecked={newUser.departments.includes(dept.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setNewUser({
+                              ...newUser,
+                              departments: [...newUser.departments, dept.id],
+                            });
+                          } else {
+                            setNewUser({
+                              ...newUser,
+                              departments: newUser.departments.filter(
+                                (id) => id !== dept.id,
+                              ),
+                            });
+                          }
+                        }}
+                      >
+                        {dept.name}
+                      </Checkbox>
+                    ))}
+                  </VStack>
+                )}
+              </FormControl>
             </VStack>
           </ModalBody>
           <ModalFooter>
