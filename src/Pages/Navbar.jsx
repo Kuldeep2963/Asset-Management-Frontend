@@ -812,7 +812,6 @@ const Navbar = () => {
             <NotificationIcon />
             
             {/* History Icon */}
-            <Tooltip label="History">
               <IconButton
                 colorScheme='blue'
                 aria-label="History"
@@ -822,7 +821,6 @@ const Navbar = () => {
                 borderRadius="full"
                 onClick={() => navigate('/history')}
               />
-            </Tooltip>
 
             {/* User Menu */}
             <Menu>

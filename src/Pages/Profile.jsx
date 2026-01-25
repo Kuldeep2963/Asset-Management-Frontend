@@ -166,70 +166,102 @@ const Profile = () => {
     <Container maxW="container.xl" py={8} mb={{base:10,md:0}}>
       {/* Header Section */}
       <Card
-        bg={bgColor}
-        border="1px solid"
-        borderColor={borderColor}
-        borderRadius="xl"
-        boxShadow="lg"
-        mb={8}
-        overflow="hidden"
+  bgGradient="linear(to-r, blue.500, purple.500)"
+  border="1px solid"
+  borderColor={borderColor}
+  borderRadius="xl"
+  boxShadow="lg"
+  mb={8}
+  overflow="hidden"
+>
+  {/* Gradient header bar */}
+  <Box
+    h={{ base: "50px", md: "60px" }}
+    position="relative"
+  />
+  
+  {/* Profile section */}
+  <Flex
+    position="relative"
+    px={{ base: 4, md: 8 }}
+    pb={{ base: 4, md: 6 }}
+    alignItems={{ base: "flex-start", md: "flex-end" }}
+    flexDirection={{ base: "column", md: "row" }}
+    transform={{ base: "translateY(-30px)", md: "translateY(-40px)" }}
+  >
+    {/* Avatar */}
+    <Avatar
+      size={{ base: "xl", md: "2xl" }}
+      src={null}
+      border="4px solid"
+      borderColor={bgColor}
+      bg={primaryColor}
+      color="white"
+      fontSize={{ base: "2xl", md: "3xl" }}
+    />
+    
+    {/* User info */}
+    <Box 
+      ml={{ base: 0, md: 6 }} 
+      mt={{ base: 4, md: 0 }}
+      flex="1"
+      width={{ base: "100%", md: "auto" }}
+    >
+      {/* Name and Role */}
+      <VStack 
+        spacing={4} 
+        align={{ base: "center", md: "flex-start" }}
+        mb={{ base: 3, md: 4 }}
       >
-        <Box
-          h="120px"
-          bgGradient="linear(to-r, blue.500, purple.500)"
-          position="relative"
-        />
-        <Flex
-          position="relative"
-          px={8}
-          pb={6}
-          alignItems="flex-end"
-          transform="translateY(-40px)"
-        >
-          <Avatar
-            size="2xl"
-            // name={fullName || userData.email}
-            src={null}
-            border="4px solid"
-            borderColor={bgColor}
-            bg={primaryColor}
-            color="white"
-            fontSize="3xl"
+        <Box textAlign={{ base: "center", md: "left" }} width="full">
+          <Heading color="white" size={{ base: "lg", md: "xl" }}>
+            {fullName || 'User'}
+          </Heading>
+          <Text 
+            fontSize={{ base: "md", md: "lg" }} 
+            color="white" 
+            mt={1}
+            noOfLines={1}
           >
-          </Avatar>
-          <Box ml={6} flex="1">
-            <HStack spacing={4} alignItems="center">
-              <Box>
-                <Heading  size="xl">{fullName || 'User'}</Heading>
-                <Text fontSize="lg" color="gray.600" mt={1}>
-                  {userData.email}
-                </Text>
-              </Box>
-              <Badge
-                colorScheme={getRoleColor(userData.role)}
-                fontSize="lg"
-                px={4}
-                py={1}
-                borderRadius="full"
-              >
-                {userData.role || 'User'}
-              </Badge>
-            </HStack>
-            <HStack spacing={6} mt={4}>
-              <Flex align="center">
-                <Icon as={MdCalendarToday} mr={2} color="gray.500" />
-                <Text color="gray.600">
-                  Last login: {formatDate(userData.last_login)}
-                </Text>
-              </Flex>
-              <Flex align="center">
-                <Icon as={MdEmail} mr={2} color="gray.500" />
-                <Text color="gray.600">ID: {userData.id}</Text>
-              </Flex>
-            </HStack>
-          </Box>
+            {userData.email}
+          </Text>
+        </Box>
+        
+        <Badge
+          colorScheme={getRoleColor(userData.role)}
+          fontSize={{ base: "md", md: "lg" }}
+          px={4}
+          py={1}
+          borderRadius="full"
+          alignSelf={{ base: "center", md: "flex-start" }}
+        >
+          {userData.role || 'User'}
+        </Badge>
+      </VStack>
+
+      {/* User details */}
+      <SimpleGrid 
+        columns={{ base: 1, md: 2 }} 
+        spacing={{ base: 3, md: 6 }}
+        width="full"
+      >
+        <Flex align="center" justify={{ base: "center", md: "flex-start" }}>
+          <Icon as={MdCalendarToday} mr={2} color="white" boxSize={{ base: 4, md: 5 }} />
+          <Text color="white" fontSize={{ base: "sm", md: "md" }}>
+            Last login: {formatDate(userData.last_login)}
+          </Text>
         </Flex>
-      </Card>
+        
+        <Flex align="center" justify={{ base: "center", md: "flex-start" }}>
+          <Icon as={MdEmail} mr={2} color="white" boxSize={{ base: 4, md: 5 }} />
+          <Text color="white" fontSize={{ base: "sm", md: "md" }}>
+            ID: {userData.id}
+          </Text>
+        </Flex>
+      </SimpleGrid>
+    </Box>
+  </Flex>
+</Card>
 
       {/* Main Content Grid */}
       <Grid templateColumns={{ base: '1fr', lg: '2fr 1fr' }} gap={8}>

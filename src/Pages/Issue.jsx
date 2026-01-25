@@ -564,7 +564,7 @@ const Issue = () => {
 
       formData.append("title", issueForm.title);
       formData.append("description", issueForm.description);
-      formData.append("asset_id", issueForm.asset_id);
+      formData.append("asset", issueForm.asset_id);
       formData.append("priority", issueForm.priority);
       formData.append("reported_date", format(new Date(), "yyyy-MM-dd"));
       // formData.append("assigned_to", null);

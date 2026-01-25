@@ -238,7 +238,7 @@ const History = () => {
   }
 
   return (
-    <Box minH="100vh" bg={bgColor} p={{ base: 4, md: 6 }} pt={{ base: 0, md: 6 }}>
+    <Box minH="100vh" bg={bgColor} p={{ base: 4, md: 6 }} pt={{ base: 4, md: 6 }}>
       {/* Header Section */}
       <Flex justify="space-between" align="center" mb={6}>
         <Box>
