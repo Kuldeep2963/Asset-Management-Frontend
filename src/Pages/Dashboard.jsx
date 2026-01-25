@@ -312,8 +312,13 @@ const Dashboard = () => {
                 border="1px"
                 borderColor={borderColor}
                 transition="all 0.3s"
-                cursor="pointer"
-                onClick={() => navigate(card.path)}
+                
+                cursor={user.permissions.can_manage_assets ? "pointer" : "default"}
+                onClick={
+                  user.permissions.can_manage_assets
+                    ? () => navigate(card.path)
+                    : undefined
+                }
                 _hover={{
                   transform: "translateY(-4px)",
                   boxShadow: "lg",

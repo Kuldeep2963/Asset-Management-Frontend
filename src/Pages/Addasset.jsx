@@ -168,14 +168,14 @@ const AddAsset = () => {
         unit: data.unit || "",
         asset_type: data.asset_type || "",
         department: data.department || "",
-        purchase_date: data.purchase_date || "",
-        installation_date: data.installation_date || "",
-        warranty_expiry_date: data.warranty_expiry_date || "",
-        license_expiry_date: data.license_expiry_date || "",
-        calibration_due_date: data.calibration_due_date || "",
-        last_calibrated_at: data.last_calibrated_at || "",
-        last_serviced_at: data.last_serviced_at || "",
-        next_service_due: data.next_service_due || "",
+        purchase_date: data.purchase_date || null,
+        installation_date: data.installation_date || null,
+        warranty_expiry_date: data.warranty_expiry_date || null,
+        license_expiry_date: data.license_expiry_date || null,
+        calibration_due_date: data.calibration_due_date || null,
+        last_calibrated_at: data.last_calibrated_at || null,
+        last_serviced_at: data.last_serviced_at || null,
+        next_service_due: data.next_service_due || null,
       });
 
       if (data.amc_contract) {
@@ -484,7 +484,7 @@ const AddAsset = () => {
   }
 
   return (
-    <Box bg={bgColor}  minH="calc(100vh - 180px)" p={{ base: 4, md: 8 }} pt={{ base: 0, md: 8 }} mb={{base:"50px",md:"0"}}>
+    <Box bg={bgColor}  minH="calc(100vh - 180px)" p={{ base: 4, md: 8 }} pt={{ base: 4, md: 8 }} mb={{base:"50px",md:"0"}}>
       {/* Header */}
       <HStack justify={"space-between"}>
         <VStack spacing={2} align="stretch" mb={8}>

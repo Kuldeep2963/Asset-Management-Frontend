@@ -351,7 +351,7 @@ const AMC = () => {
   const [formData, setFormData] = useState({
     contract_type: "AMC",
     vendor: "",
-    unit: userData?.unit?.id || "",
+    units: userData?.unit?.id ? [userData.unit.id.toString()] : [],
     contract_number: "",
     start_date: format(new Date(), "yyyy-MM-dd"),
     end_date: format(addDays(new Date(), 365), "yyyy-MM-dd"),
@@ -680,7 +680,9 @@ const AMC = () => {
     setFormData({
       contract_type: contract.contract_type,
       vendor: contract.vendor,
-      unit: contract.unit,
+      units: Array.isArray(contract.units) 
+        ? contract.units.map(u => u.toString()) 
+        : (contract.unit ? [contract.unit.toString()] : []),
       contract_number: contract.contract_number,
       start_date: contract.start_date,
       end_date: contract.end_date,
@@ -937,7 +939,7 @@ const AMC = () => {
     setFormData({
       contract_type: "AMC",
       vendor: "",
-      unit: userData?.unit?.id || "",
+      units: userData?.unit?.id ? [userData.unit.id.toString()] : [],
       contract_number: "",
       start_date: format(new Date(), "yyyy-MM-dd"),
       end_date: format(addDays(new Date(), 365), "yyyy-MM-dd"),
@@ -1537,7 +1539,7 @@ const AMC = () => {
                         color="red.500"
                         onClick={() => handleDeleteContract(contract.id)}
                       >
-                        Delete Contract
+                        Deavtivate Contract
                       </MenuItem>
                     </MenuList>
                   </Menu>
@@ -2107,20 +2109,23 @@ const AMC = () => {
               </FormControl>
 
               {userData?.role === "org_admin" && (
-                <FormControl isRequired>
-                  <FormLabel>Unit</FormLabel>
-                  <Select
-                    name="unit"
-                    value={formData.unit}
-                    onChange={handleInputChange}
-                    placeholder="Select Unit"
+                <FormControl isRequired gridColumn={{ base: "span 1", md: "span 2" }}>
+                  <FormLabel>Units</FormLabel>
+                  <CheckboxGroup
+                    colorScheme="blue"
+                    value={formData.units}
+                    onChange={(values) =>
+                      setFormData((prev) => ({ ...prev, units: values }))
+                    }
                   >
-                    {units.map((unit) => (
-                      <option key={unit.id} value={unit.id}>
-                        {unit.name}
-                      </option>
-                    ))}
-                  </Select>
+                    <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={4}>
+                      {units.map((unit) => (
+                        <Checkbox key={unit.id} value={unit.id.toString()}>
+                          {unit.name}
+                        </Checkbox>
+                      ))}
+                    </SimpleGrid>
+                  </CheckboxGroup>
                 </FormControl>
               )}
 

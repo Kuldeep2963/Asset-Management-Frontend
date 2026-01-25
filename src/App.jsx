@@ -18,6 +18,7 @@ import ResetPassword from './Pages/ResetPassword';
 import { useAuth } from './context/AuthContext';
 import { ClassNames } from '@emotion/react';
 import Profile from './Pages/Profile';
+import LandingPage from './Pages/LandingPage';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -41,7 +42,7 @@ function App() {
       { !isLoginPage && <Navbar />}
       <Box pb={!isLoginPage ? { base: "80px", lg: "20px" } : 0}>
         <Routes>
-          <Route path='/' element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path='/' element={<PublicRoute><LandingPage /></PublicRoute>} />
           <Route path='/reset-password/:uid/:token' element={<PublicRoute><ResetPassword /></PublicRoute>} />
           
           <Route path='/plan' element={<ProtectedRoute><Plan /></ProtectedRoute>}/>

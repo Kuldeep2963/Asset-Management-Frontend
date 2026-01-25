@@ -21,21 +21,7 @@ import {
   Tr,
   Th,
   Td,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
   useDisclosure,
-  FormControl,
-  FormLabel,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
   Tag,
   useToast,
   Flex,
@@ -62,7 +48,6 @@ import {
   MenuList,
   MenuItem,
   MenuDivider,
-  Checkbox,
 } from "@chakra-ui/react";
 import {
   FiSearch,
@@ -89,6 +74,12 @@ import {
 import { BsFillBuildingFill } from "react-icons/bs";
 import axios from "axios";
 import ConfirmationModal from "../Components/modals/ConfirmationModal";
+import OrganizationModal from "../Components/modals/OrganizationModal";
+import AdminModal from "../Components/modals/AdminModal";
+import UnitModal from "../Components/modals/UnitModal";
+import UnitAdminModal from "../Components/modals/UnitAdminModal";
+import UserModal from "../Components/modals/UserModal";
+import DepartmentModal from "../Components/modals/DepartmentModal";
 
 // API Configuration
 const API_BASE_URL = "https://asset-management-backend-7y34.onrender.com";
@@ -1919,7 +1910,7 @@ const UserManagement = () => {
                                       onDepartmentOpen();
                                     }}
                                   >
-                                    Add Dept
+                                     Dept
                                   </Button>
                                   <IconButton
                                     aria-label="Edit unit"
@@ -2080,13 +2071,13 @@ const UserManagement = () => {
                                         handleDeleteUser(unitAdmin.id)
                                       }
                                     />
-                                    <IconButton
+                                    {/* <IconButton
                                       aria-label="Reset password"
                                       icon={<FiKey />}
                                       size="sm"
                                       variant="ghost"
                                       colorScheme="orange"
-                                    />
+                                    /> */}
                                   </Flex>
                                 </VStack>
                               </CardBody>
@@ -2243,7 +2234,7 @@ const UserManagement = () => {
                             onDepartmentOpen();
                           }}
                         >
-                          Add Department
+                          Add Dept
                         </Button>
                       </HStack>
                     </Flex>
@@ -2960,499 +2951,68 @@ const UserManagement = () => {
         </Alert>
       )}
 
-      {/* Modal Forms - Updated with real form handlers */}
-      {/* Add Organization Modal */}
-      <Modal isOpen={isOrgOpen} onClose={onOrgClose} size="lg">
-        <ModalOverlay backdropFilter="blur(4px)" />
-        <ModalContent>
-          <ModalHeader bg="teal.600" color="white">
-            {isEditingOrg ? "Edit Organization" : "Add New Organization"}
-          </ModalHeader>
-          <ModalCloseButton color="white" />
-          <ModalBody>
-            <VStack spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>Organization Name</FormLabel>
-                <Input
-                  placeholder="Enter organization name"
-                  value={newOrganization.name}
-                  onChange={(e) =>
-                    setNewOrganization({
-                      ...newOrganization,
-                      name: e.target.value,
-                    })
-                  }
-                />
-              </FormControl>
-            </VStack>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onOrgClose}>
-              Cancel
-            </Button>
-            <Button colorScheme="teal" onClick={handleAddOrganization}>
-              {isEditingOrg ? "Update Organization" : "Create Organization"}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      {/* Modal Forms */}
+      <OrganizationModal
+        isOpen={isOrgOpen}
+        onClose={onOrgClose}
+        isEditingOrg={isEditingOrg}
+        newOrganization={newOrganization}
+        setNewOrganization={setNewOrganization}
+        handleAddOrganization={handleAddOrganization}
+      />
 
-      {/* Add Admin Modal */}
-      <Modal
+      <AdminModal
         isOpen={isAdminOpen}
         onClose={onAdminClose}
-        size={{ base: "sm", md: "lg" }}
-      >
-        <ModalOverlay backdropFilter="blur(4px)" />
-        <ModalContent>
-          <ModalHeader bg="teal.600" color="white">
-            {isEditingAdmin
-              ? "Edit Organization Admin"
-              : "Add Organization Admin"}
-          </ModalHeader>
-          <ModalCloseButton color="white" />
-          <ModalBody>
-            <VStack spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>Select Organization</FormLabel>
-                <Select
-                  placeholder="Select organization"
-                  value={newAdmin.organization}
-                  onChange={(e) =>
-                    setNewAdmin({ ...newAdmin, organization: e.target.value })
-                  }
-                  isDisabled={isEditingAdmin}
-                >
-                  {organizations.map((org) => (
-                    <option key={org.id} value={org.id}>
-                      {org.name}
-                    </option>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Admin First Name</FormLabel>
-                <Input
-                  placeholder="Enter admin first name"
-                  value={newAdmin.first_name}
-                  onChange={(e) =>
-                    setNewAdmin({ ...newAdmin, first_name: e.target.value })
-                  }
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Admin Last Name</FormLabel>
-                <Input
-                  placeholder="Enter admin last name"
-                  value={newAdmin.last_name}
-                  onChange={(e) =>
-                    setNewAdmin({ ...newAdmin, last_name: e.target.value })
-                  }
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Email Address</FormLabel>
-                <Input
-                  type="email"
-                  placeholder="Enter admin email"
-                  value={newAdmin.email}
-                  onChange={(e) =>
-                    setNewAdmin({ ...newAdmin, email: e.target.value })
-                  }
-                />
-              </FormControl>
-              <FormControl>
-                <HStack spacing={3}>
-                  <Checkbox
-                    isChecked={newAdmin.can_manage_assets}
-                    onChange={(e) =>
-                      setNewAdmin((prev) => ({
-                        ...prev,
-                        can_manage_assets: e.target.checked,
-                      }))
-                    }
-                  >
-                    Asset Management
-                  </Checkbox>
+        isEditingAdmin={isEditingAdmin}
+        newAdmin={newAdmin}
+        setNewAdmin={setNewAdmin}
+        organizations={organizations}
+        handleAddAdmin={handleAddAdmin}
+      />
 
-                  <Checkbox
-                    isChecked={newAdmin.can_manage_users}
-                    onChange={(e) =>
-                      setNewAdmin((prev) => ({
-                        ...prev,
-                        can_manage_users: e.target.checked,
-                      }))
-                    }
-                  >
-                    User Management
-                  </Checkbox>
-                </HStack>
-              </FormControl>
-            </VStack>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onAdminClose}>
-              Cancel
-            </Button>
-            <Button colorScheme="teal" onClick={handleAddAdmin}>
-              {isEditingAdmin ? "Update Admin" : "Add Admin"}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
-      {/* Add Unit Modal */}
-      <Modal
+      <UnitModal
         isOpen={isUnitOpen}
         onClose={onUnitClose}
-        size={{ base: "sm", md: "lg" }}
-      >
-        <ModalOverlay backdropFilter="blur(4px)" />
-        <ModalContent>
-          <ModalHeader bg="teal.600" color="white">
-            {isEditingUnit ? "Edit Unit" : "Add New Unit"}
-          </ModalHeader>
-          <ModalCloseButton color="white" />
-          <ModalBody>
-            <VStack spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>Unit Name</FormLabel>
-                <Input
-                  placeholder="Enter unit name"
-                  value={newUnit.name}
-                  onChange={(e) =>
-                    setNewUnit({ ...newUnit, name: e.target.value })
-                  }
-                />
-              </FormControl>
-            </VStack>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onUnitClose}>
-              Cancel
-            </Button>
-            <Button colorScheme="teal" onClick={handleAddUnit}>
-              {isEditingUnit ? "Update Unit" : "Create Unit"}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+        isEditingUnit={isEditingUnit}
+        newUnit={newUnit}
+        setNewUnit={setNewUnit}
+        handleAddUnit={handleAddUnit}
+      />
 
-      {/* Add Unit Admin Modal */}
-      <Modal
+      <UnitAdminModal
         isOpen={isUnitAdminOpen}
         onClose={onUnitAdminClose}
-        size={{ base: "sm", md: "lg" }}
-      >
-        <ModalOverlay backdropFilter="blur(4px)" />
-        <ModalContent>
-          <ModalHeader bg="teal.600" color="white">
-            {isEditingUnitAdmin
-              ? "Edit Unit Administrator"
-              : "Add Unit Administrator"}
-          </ModalHeader>
-          <ModalCloseButton color="white" />
-          <ModalBody>
-            <VStack spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>Select Unit</FormLabel>
-                <Select
-                  placeholder="Select unit for this admin"
-                  value={newUnitAdmin.unit}
-                  onChange={(e) =>
-                    setNewUnitAdmin({ ...newUnitAdmin, unit: e.target.value })
-                  }
-                  // isDisabled={isEditingUnitAdmin}
-                >
-                  {units.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.name} ({unit.organization_name})
-                    </option>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>First Name</FormLabel>
-                <Input
-                  placeholder="Enter unit admin full name"
-                  value={newUnitAdmin.first_name}
-                  onChange={(e) =>
-                    setNewUnitAdmin({
-                      ...newUnitAdmin,
-                      first_name: e.target.value,
-                    })
-                  }
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Last Name</FormLabel>
-                <Input
-                  placeholder="Enter unit admin full name"
-                  value={newUnitAdmin.last_name}
-                  onChange={(e) =>
-                    setNewUnitAdmin({
-                      ...newUnitAdmin,
-                      last_name: e.target.value,
-                    })
-                  }
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Email Address</FormLabel>
-                <Input
-                  type="email"
-                  placeholder="Enter unit admin email"
-                  value={newUnitAdmin.email}
-                  onChange={(e) =>
-                    setNewUnitAdmin({ ...newUnitAdmin, email: e.target.value })
-                  }
-                />
-              </FormControl>
-              <FormControl>
-                <HStack spacing={3}>
-                  <Checkbox
-                    isChecked={newUnitAdmin.can_manage_assets}
-                    onChange={(e) =>
-                      setNewUnitAdmin((prev) => ({
-                        ...prev,
-                        can_manage_assets: e.target.checked,
-                      }))
-                    }
-                  >
-                    Asset Management
-                  </Checkbox>
+        isEditingUnitAdmin={isEditingUnitAdmin}
+        newUnitAdmin={newUnitAdmin}
+        setNewUnitAdmin={setNewUnitAdmin}
+        units={units}
+        handleAddUnitAdmin={handleAddUnitAdmin}
+      />
 
-                  <Checkbox
-                    isChecked={newUnitAdmin.can_manage_users}
-                    onChange={(e) =>
-                      setNewUnitAdmin((prev) => ({
-                        ...prev,
-                        can_manage_users: e.target.checked,
-                      }))
-                    }
-                  >
-                    User Management
-                  </Checkbox>
-                </HStack>
-              </FormControl>
-
-             
-            </VStack>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onUnitAdminClose}>
-              Cancel
-            </Button>
-            <Button colorScheme="teal" onClick={handleAddUnitAdmin}>
-              {isEditingUnitAdmin ? "Update Unit Admin" : "Create Unit Admin"}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
-      {/* Add User Modal */}
-      <Modal
+      <UserModal
         isOpen={isUserOpen}
         onClose={onUserClose}
-        size={{ base: "sm", md: "lg" }}
-        scrollBehavior="inside"
-      >
-        <ModalOverlay backdropFilter="blur(4px)" />
-        <ModalContent>
-          <ModalHeader borderTopRadius={"md"} bg="teal.600" color="white">
-            {isEditingUser ? "Edit User" : "Add New User"}
-          </ModalHeader>
-          <ModalCloseButton color="white" />
-          <ModalBody>
-            <VStack spacing={4}>
-              {(userRole === "org_admin" || userRole === "unit_admin") && (
-                <FormControl isRequired>
-                  <FormLabel>Select Unit</FormLabel>
-                  <Select
-                    placeholder="Select unit"
-                    value={newUser.unit}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, unit: e.target.value })
-                    }
-                    isDisabled={userRole === "unit_admin"}
-                  >
-                    {units.map((unit) => (
-                      <option key={unit.id} value={unit.id}>
-                        {unit.name}{" "}
-                        {unit.organization_name &&
-                          `(${unit.organization_name})`}
-                      </option>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-              <FormControl isRequired>
-                <FormLabel>First Name</FormLabel>
-                <Input
-                  placeholder="Enter user full name"
-                  value={newUser.first_name}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, first_name: e.target.value })
-                  }
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Last Name</FormLabel>
-                <Input
-                  placeholder="Enter user full name"
-                  value={newUser.last_name}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, last_name: e.target.value })
-                  }
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Email Address</FormLabel>
-                <Input
-                  type="email"
-                  placeholder="Enter user email"
-                  value={newUser.email}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, email: e.target.value })
-                  }
-                />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Phone Number</FormLabel>
-                <Input
-                  placeholder="Enter phone number"
-                  value={newUser.phone}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, phone: e.target.value })
-                  }
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Role</FormLabel>
-                <Select
-                  placeholder="Select role"
-                  value={newUser.role}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, role: e.target.value })
-                  }
-                >
-                  <option value="service_user">Service User</option>
-                  <option value="viewer">Viewer</option>
-                </Select>
-              </FormControl>
-              <FormControl>
-                <FormLabel>Department(s)</FormLabel>
+        isEditingUser={isEditingUser}
+        userRole={userRole}
+        newUser={newUser}
+        setNewUser={setNewUser}
+        units={units}
+        selectedUnitDepartments={selectedUnitDepartments}
+        handleAddUser={handleAddUser}
+      />
 
-                {userRole === "org_admin" && !newUser.unit ? (
-                  <Text fontSize="sm" color="gray.500">
-                    Please select a unit first
-                  </Text>
-                ) : (
-                  <VStack align="start" spacing={2}>
-                    {selectedUnitDepartments.map((dept) => (
-                      <Checkbox
-                        key={dept.id}
-                        isChecked={newUser.departments.includes(dept.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setNewUser({
-                              ...newUser,
-                              departments: [...newUser.departments, dept.id],
-                            });
-                          } else {
-                            setNewUser({
-                              ...newUser,
-                              departments: newUser.departments.filter(
-                                (id) => id !== dept.id,
-                              ),
-                            });
-                          }
-                        }}
-                      >
-                        {dept.name}
-                      </Checkbox>
-                    ))}
-                  </VStack>
-                )}
-              </FormControl>
-            </VStack>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onUserClose}>
-              Cancel
-            </Button>
-            <Button colorScheme="teal" onClick={handleAddUser}>
-              {isEditingUser ? "Update User" : "Add User"}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
-      {/* Add Department Modal */}
-      <Modal
+      <DepartmentModal
         isOpen={isDepartmentOpen}
         onClose={onDepartmentClose}
-        size={{ base: "sm", md: "lg" }}
-      >
-        <ModalOverlay backdropFilter="blur(4px)" />
-        <ModalContent>
-          <ModalHeader bg="teal.600" color="white">
-            {isEditingDept ? "Edit Department" : "Add Department"}
-          </ModalHeader>
-          <ModalCloseButton color="white" />
-          <ModalBody>
-            <VStack spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>Unit</FormLabel>
-                <Select
-                  placeholder="Select Unit"
-                  value={newDepartment.unit}
-                  onChange={(e) =>
-                    setNewDepartment({
-                      ...newDepartment,
-                      unit: e.target.value,
-                    })
-                  }
-                  isDisabled={userRole === "unit_admin"}
-                >
-                  {userRole === "org_admin" &&
-                    units.map((unit) => (
-                      <option key={unit.id} value={unit.id}>
-                        {unit.name}
-                      </option>
-                    ))}
-                  {userRole === "unit_admin" && userData?.unit && (
-                    <option value={userData.unit.id}>
-                      {userData.unit.name}
-                    </option>
-                  )}
-                </Select>
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Department Name</FormLabel>
-                <Input
-                  placeholder="Enter department name"
-                  value={newDepartment.name}
-                  onChange={(e) =>
-                    setNewDepartment({
-                      ...newDepartment,
-                      name: e.target.value,
-                    })
-                  }
-                />
-              </FormControl>
-            </VStack>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onDepartmentClose}>
-              Cancel
-            </Button>
-            <Button colorScheme="teal" onClick={handleAddDepartment}>
-              {isEditingDept ? "Update Department" : "Add Department"}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+        isEditingDept={isEditingDept}
+        userRole={userRole}
+        newDepartment={newDepartment}
+        setNewDepartment={setNewDepartment}
+        units={units}
+        userData={userData}
+        handleAddDepartment={handleAddDepartment}
+      />
 
       <ConfirmationModal
         isOpen={isConfirmOpen}

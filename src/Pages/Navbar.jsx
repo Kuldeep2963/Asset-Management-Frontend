@@ -126,7 +126,7 @@ const NotificationIcon = () => {
     setNotifications(notificationsData);
     
     // Update unread count based on the full list
-    const unread = Array.isArray(notificationsData) ? notificationsData.filter(n => !n.read).length : 0;
+    const unread = Array.isArray(notificationsData) ? notificationsData.filter(n => !n.is_read).length : 0;
     setUnreadCount(unread);
   } catch (error) {
     console.error('Error fetching notifications:', error);
@@ -157,7 +157,7 @@ const markAsRead = async (notificationId) => {
     setNotifications(prev => 
       prev.map(notif => 
         notif.id == notificationId 
-          ? { ...notif, read: true } 
+          ? { ...notif, is_read: true } 
           : notif
       )
     );
@@ -185,7 +185,7 @@ const markAsRead = async (notificationId) => {
 // Mark all as read
 const markAllAsRead = async () => {
   try {
-    const unreadNotifications = notifications.filter(n => !n.read);
+    const unreadNotifications = notifications.filter(n => !n.is_read);
     if (unreadNotifications.length === 0) return;
 
     // Use bulk update if API supports it, or individual calls
@@ -200,7 +200,7 @@ const markAllAsRead = async () => {
     );
     
     setNotifications(prev => 
-      prev.map(notif => ({ ...notif, read: true }))
+      prev.map(notif => ({ ...notif, is_read: true }))
     );
     
     setUnreadCount(0);
@@ -235,7 +235,7 @@ const deleteNotification = async (e, notificationId) => {
     });
     
     const deletedNotif = notifications.find(n => n.id === notificationId);
-    if (deletedNotif && !deletedNotif.read) {
+    if (deletedNotif && !deletedNotif.is_read) {
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
     
@@ -328,6 +328,10 @@ const clearAllNotifications = async () => {
       default: return <FiBell size={iconSize} color="var(--chakra-colors-blue-500)" />;
     }
   };
+
+  const filteredNotifications = showUnreadOnly
+  ? notifications.filter(n => !n.is_read)
+  : notifications;
 
   return (
     <>
@@ -463,12 +467,12 @@ const clearAllNotifications = async () => {
           ) : (
             <VStack spacing={0} align="stretch">
               {notifications
-                .filter(n => !showUnreadOnly || !n.read)
+                .filter(n => !showUnreadOnly || !n.is_read)
                 .map((notification) => (
                 <Box
                   key={notification.id}
                   p={4}
-                  bg={notification.read ? 'transparent' : unreadBg}
+                  bg={notification.is_read ? 'transparent' : unreadBg}
                   borderBottom="1px solid"
                   borderColor={borderColor}
                   transition="all 0.2s"
@@ -495,7 +499,7 @@ const clearAllNotifications = async () => {
                     <Box flex="1">
                       <Flex justify="space-between" align="start">
                         <Text
-                          fontWeight={notification.read ? "semibold" : "bold"}
+                          fontWeight={notification.is_read ? "semibold" : "bold"}
                           fontSize="sm"
                           color={useColorModeValue('gray.800', 'white')}
                           noOfLines={1}
@@ -529,7 +533,7 @@ const clearAllNotifications = async () => {
                       </Text>
                     </Box>
                   </Flex>
-                  {!notification.read && (
+                  {!notification.is_read && (
                     <Box
                       position="absolute"
                       left={2}
@@ -586,6 +590,9 @@ const Navbar = () => {
   const userRole = user?.role || '';
   
   const getNavItems = () => {
+    if (!user) return [];
+
+  const { role, permissions = {} } = user;
     const allItems = [
       {
         name: 'Dashboard',
@@ -593,34 +600,41 @@ const Navbar = () => {
         icon: FaTachometerAlt,
         description: 'Main dashboard',
         roles: ['org_admin', 'unit_admin', 'service_user', 'viewer']
+        // permissionKey: "can_manage_asset"
+
       },
       {
         name: 'Users',
         path: '/users',
         icon: FaUsers,
         description: 'Manage users and permissions',
-        roles: ['superadmin', 'org_admin', 'unit_admin']
+        roles: ['superadmin', 'org_admin', 'unit_admin'],
+        permissionKey: "can_manage_users"
       },
       {
         name: 'Assets',
         path: '/assets',
         icon: FiPackage,
         description: 'Manage Asset',
-        roles: ['org_admin', 'unit_admin', 'service_user','viewer']
+        roles: ['org_admin', 'unit_admin', 'service_user','viewer'],
+        permissionKey: "can_manage_assets"
       },
       {
         name: 'Services',
         path: '/services',
         icon: FiTool,
         description: 'Manage Asset',
-        roles: ['org_admin', 'unit_admin', 'service_user']
+        roles: ['org_admin', 'unit_admin', 'service_user'],
+        permissionKey: "can_manage_assets"
       },
       {
         name: 'AMC/CMC',
         path: '/amc_cmc',
         icon: FaEye,
         description: 'View-only access',
-        roles: ['org_admin', 'unit_admin']
+        roles: ['org_admin', 'unit_admin'],
+        permissionKey: "can_manage_assets"
+
       },
       {
         name: 'Subscriptions',
@@ -641,11 +655,29 @@ const Navbar = () => {
         path: '/issue',
         icon: FaExclamationCircle,
         description: 'View-only access',
-        roles: ['org_admin', 'unit_admin', 'service_user','viewer' ]
+        roles: ['org_admin', 'unit_admin', 'service_user','viewer' ],
+        permissionKey: "can_manage_assets"
+
       }
     ];
 
-    return allItems.filter(item => item.roles.includes(userRole));
+     return allItems.filter((item) => {
+    // ❌ Role not allowed
+    if (!item.roles.includes(role)) return false;
+
+    // ✅ Superadmin sees everything
+    if (role === "superadmin") return true;
+
+    // 🔐 Permission-based check (only if defined)
+    if (
+      (role === "org_admin" || role === "unit_admin") &&
+      item.permissionKey
+    ) {
+      return permissions[item.permissionKey] === true;
+    }
+
+    return true;
+  });
   };
 
   const navItems = getNavItems();

@@ -491,10 +491,10 @@ const Issue = () => {
     const matchesTab =
       activeTab === "all" ||
       (activeTab === "open" && issue.status === "open") ||
-      (activeTab === "in-progress" && issue.status === "in_progress") ||
+      (activeTab === "in_progress" && issue.status === "in_progress") ||
       (activeTab === "assigned" && issue.assigned_to !== null) ||
-      (activeTab === "resolved" &&
-        (issue.status === "resolved" || issue.status === "closed")) ||
+      (activeTab === "resolved" && issue.status === "resolved") ||
+      (activeTab === "closed" && issue.status === "closed") ||
       (activeTab === "pending" && issue.status === "pending");
 
     const matchesSearch =
@@ -827,7 +827,7 @@ const Issue = () => {
     switch (status) {
       case "open":
         return "red";
-      case "in-progress":
+      case "in_progress":
         return "blue";
       case "assigned":
         return "purple";
@@ -846,7 +846,7 @@ const Issue = () => {
     switch (status) {
       case "open":
         return FiAlertTriangle;
-      case "in-progress":
+      case "in_progress":
         return FiClock;
       case "assigned":
         return MdOutlineAssignment;
@@ -1307,10 +1307,10 @@ const Issue = () => {
                   [
                     "all",
                     "open",
-                    "in-progress",
+                    "in_progress",
                     "assigned",
-                    "resolved",
                     "pending",
+                    "resolved",
                     "closed",
                   ][index],
                 )
@@ -1400,7 +1400,7 @@ const Issue = () => {
                 {[
                   "all",
                   "open",
-                  "in-progress",
+                  "in_progress",
                   "assigned",
                   "pending",
                   "resolved",

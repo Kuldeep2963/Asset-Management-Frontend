@@ -80,6 +80,7 @@ import {
   MdAssignmentTurnedIn,
 } from 'react-icons/md'
 import { format, subDays, startOfDay, endOfDay, parseISO } from 'date-fns'
+import api from '../services/api'
 
 const History = () => {
   // Color mode values
@@ -98,7 +99,8 @@ const History = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState('7days')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [activities, setActivities] = useState([])
   const [stats, setStats] = useState({
     totalActivities: 0,
     completedTasks: 0,
@@ -115,6 +117,8 @@ const History = () => {
     { id: 'security', label: 'Security', icon: FiShield, color: 'purple.500' },
     { id: 'compliance', label: 'Compliance', icon: FiCheckCircle, color: 'blue.500' },
     { id: 'financial', label: 'Financial', icon: FiDollarSign, color: 'teal.500' },
+    { id: 'asset_created', label: 'Asset Created', icon: FiPackage, color: 'green.500' },
+    { id: 'issue_assigned', label: 'Issue Assigned', icon: MdAssignmentTurnedIn, color: 'blue.500' },
   ]
 
   // Timeframe options
@@ -126,129 +130,31 @@ const History = () => {
     { value: 'custom', label: 'Custom Range' },
   ]
 
-  // Enhanced sample data
-  const [activities, setActivities] = useState([
-    {
-      id: 1,
-      activity: 'CT Scanner - Calibration Completed',
-      description: 'Quarterly calibration completed with 99.8% accuracy',
-      time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-      icon: FiCheckCircle,
-      category: 'maintenance',
-      severity: 'low',
-      assetId: 'AST-CT-001',
-      assetName: 'CT Scanner',
-      performedBy: 'Dr. Sarah Johnson',
-      department: 'Radiology',
-      tags: ['Calibration', 'Quality Check', 'Quarterly'],
-      status: 'completed',
-      priority: 'medium',
-    },
-    {
-      id: 2,
-      activity: 'MRI Machine - Preventive Maintenance Scheduled',
-      description: 'Annual PM scheduled for December 15, 2024',
-      time: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      icon: FiCalendar,
-      category: 'maintenance',
-      severity: 'medium',
-      assetId: 'AST-MRI-001',
-      assetName: 'MRI Machine 3T',
-      performedBy: 'System Auto',
-      department: 'Imaging',
-      tags: ['Preventive', 'Scheduled', 'Annual'],
-      status: 'scheduled',
-      priority: 'high',
-    },
-    {
-      id: 3,
-      activity: '15 New Assets Added to Inventory',
-      description: 'New medical equipment received and registered',
-      time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      icon: FiPackage,
-      category: 'updates',
-      severity: 'low',
-      assetId: 'BATCH-001',
-      assetName: 'Multiple Assets',
-      performedBy: 'Inventory Manager',
-      department: 'Procurement',
-      tags: ['New Assets', 'Inventory', 'Procurement'],
-      status: 'completed',
-      priority: 'medium',
-    },
-    {
-      id: 4,
-      activity: '3 Equipment Warranties Renewed',
-      description: 'Extended warranties for critical care equipment',
-      time: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      icon: FiShield,
-      category: 'financial',
-      severity: 'medium',
-      assetId: 'WRN-001',
-      assetName: 'Multiple Equipment',
-      performedBy: 'Finance Dept',
-      department: 'Finance',
-      tags: ['Warranty', 'Renewal', 'Financial'],
-      status: 'completed',
-      priority: 'high',
-    },
-    {
-      id: 5,
-      activity: 'Quarterly Asset Audit Completed',
-      description: 'Full system audit with 98.7% accuracy rate',
-      time: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      icon: FiActivity,
-      category: 'compliance',
-      severity: 'low',
-      assetId: 'AUD-001',
-      assetName: 'System Wide',
-      performedBy: 'Audit Team',
-      department: 'Compliance',
-      tags: ['Audit', 'Compliance', 'Quarterly'],
-      status: 'completed',
-      priority: 'medium',
-    },
-    {
-      id: 6,
-      activity: 'Ultrasound Machine - Repair Completed',
-      description: 'Replaced transducer and recalibrated system',
-      time: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-      icon: FiTool,
-      category: 'maintenance',
-      severity: 'high',
-      assetId: 'AST-US-003',
-      assetName: 'Ultrasound GE',
-      performedBy: 'John Technician',
-      department: 'Biomedical',
-      tags: ['Repair', 'Urgent', 'Hardware'],
-      status: 'completed',
-      priority: 'high',
-    },
-    {
-      id: 7,
-      activity: 'Security Access Logs Reviewed',
-      description: 'Monthly security audit of asset access logs',
-      time: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-      icon: MdSecurity,
-      category: 'security',
-      severity: 'medium',
-      assetId: 'SEC-001',
-      assetName: 'Security System',
-      performedBy: 'Security Admin',
-      department: 'Security',
-      tags: ['Security', 'Audit', 'Access Logs'],
-      status: 'completed',
-      priority: 'medium',
-    },
-  ])
+  // Fetch activities
+  const fetchActivities = async () => {
+    setIsLoading(true)
+    try {
+      const response = await api.get('/api/activity-logs/')
+      setActivities(response.data)
+    } catch (error) {
+      console.error('Error fetching activity logs:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchActivities()
+  }, [])
 
   // Filter activities
   const filteredActivities = activities.filter(activity => {
-    const matchesCategory = selectedCategory === 'all' || activity.category === selectedCategory
+    const matchesCategory = selectedCategory === 'all' || activity.action_type === selectedCategory
     const matchesSearch = searchQuery === '' || 
-      activity.activity.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      activity.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       activity.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      activity.assetId.toLowerCase().includes(searchQuery.toLowerCase())
+      activity.asset_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      activity.actor_name.toLowerCase().includes(searchQuery.toLowerCase())
     
     return matchesCategory && matchesSearch
   })
@@ -257,9 +163,9 @@ const History = () => {
   useEffect(() => {
     const calculateStats = () => {
       const total = filteredActivities.length
-      const completed = filteredActivities.filter(a => a.status === 'completed').length
-      const pending = filteredActivities.filter(a => a.status === 'scheduled' || a.status === 'pending').length
-      const updates = filteredActivities.filter(a => a.category === 'updates').length
+      const completed = filteredActivities.filter(a => a.status === 'completed' || a.action_type === 'asset_created').length
+      const pending = filteredActivities.filter(a => a.status === 'scheduled' || a.status === 'pending' || a.action_type === 'issue_assigned').length
+      const updates = filteredActivities.filter(a => a.category === 'updates' || a.action_type === 'asset_created').length
       
       setStats({
         totalActivities: total,
@@ -275,19 +181,24 @@ const History = () => {
 
   // Format time
   const formatTime = (isoString) => {
-    const date = parseISO(isoString)
-    const now = new Date()
-    const diffHours = Math.floor((now - date) / (1000 * 60 * 60))
-    
-    if (diffHours < 1) {
-      return 'Just now'
-    } else if (diffHours < 24) {
-      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
-    } else if (diffHours < 168) {
-      const days = Math.floor(diffHours / 24)
-      return `${days} day${days > 1 ? 's' : ''} ago`
-    } else {
-      return format(date, 'MMM dd, yyyy HH:mm')
+    if (!isoString) return ''
+    try {
+      const date = parseISO(isoString)
+      const now = new Date()
+      const diffHours = Math.floor((now - date) / (1000 * 60 * 60))
+      
+      if (diffHours < 1) {
+        return 'Just now'
+      } else if (diffHours < 24) {
+        return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+      } else if (diffHours < 168) {
+        const days = Math.floor(diffHours / 24)
+        return `${days} day${days > 1 ? 's' : ''} ago`
+      } else {
+        return format(date, 'MMM dd, yyyy HH:mm')
+      }
+    } catch (e) {
+      return isoString
     }
   }
 
@@ -302,24 +213,28 @@ const History = () => {
   }
 
   // Get status color
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'completed': return 'green'
-      case 'scheduled': return 'blue'
-      case 'pending': return 'orange'
-      case 'failed': return 'red'
+  const getStatusColor = (status, actionType) => {
+    if (status) {
+      switch(status) {
+        case 'completed': return 'green'
+        case 'scheduled': return 'blue'
+        case 'pending': return 'orange'
+        case 'failed': return 'red'
+        default: return 'gray'
+      }
+    }
+    
+    // Fallback to action_type
+    switch(actionType) {
+      case 'asset_created': return 'green'
+      case 'issue_assigned': return 'blue'
       default: return 'gray'
     }
   }
 
   // Handle refresh
   const handleRefresh = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      // In real app, you would fetch new data here
-    }, 1000)
+    fetchActivities()
   }
 
   return (
@@ -537,13 +452,13 @@ const History = () => {
                       <Flex justify="space-between" align="start" mb={2}>
                         <HStack spacing={3}>
                           <Icon 
-                            as={activity.icon} 
-                            color={activityCategories.find(c => c.id === activity.category)?.color || primaryColor}
+                            as={activityCategories.find(c => c.id === activity.action_type)?.icon || FiActivity} 
+                            color={activityCategories.find(c => c.id === activity.action_type)?.color || primaryColor}
                             boxSize={5}
                           />
                           <Box>
                             <Text fontWeight="semibold" color={headingColor}>
-                              {activity.activity}
+                              {activity.title}
                             </Text>
                             <Text fontSize="sm" color={textColor}>
                               {activity.description}
@@ -551,10 +466,10 @@ const History = () => {
                           </Box>
                         </HStack>
                         <Badge 
-                          colorScheme={getStatusColor(activity.status)}
+                          colorScheme={getStatusColor(activity.status, activity.action_type)}
                           variant="subtle"
                         >
-                          {activity.status}
+                          {activity.status || activity.action_type.replace('_', ' ')}
                         </Badge>
                       </Flex>
 
@@ -564,28 +479,32 @@ const History = () => {
                             <Badge variant="outline" colorScheme="blue">
                               <HStack spacing={1}>
                                 <MdDevices />
-                                <Text>{activity.assetId}</Text>
+                                <Text>{activity.asset_id}</Text>
                               </HStack>
                             </Badge>
                           </Tooltip>
                           
-                          <Tooltip label="Priority">
-                            <Badge 
-                              variant="subtle" 
-                              colorScheme={
-                                activity.priority === 'high' ? 'red' :
-                                activity.priority === 'medium' ? 'orange' : 'blue'
-                              }
-                            >
-                              {activity.priority}
-                            </Badge>
-                          </Tooltip>
+                          {activity.priority && (
+                            <Tooltip label="Priority">
+                              <Badge 
+                                variant="subtle" 
+                                colorScheme={
+                                  activity.priority === 'high' ? 'red' :
+                                  activity.priority === 'medium' ? 'orange' : 'blue'
+                                }
+                              >
+                                {activity.priority}
+                              </Badge>
+                            </Tooltip>
+                          )}
 
-                          <Tooltip label="Department">
-                            <Badge variant="outline">
-                              {activity.department}
-                            </Badge>
-                          </Tooltip>
+                          {activity.department && (
+                            <Tooltip label="Department">
+                              <Badge variant="outline">
+                                {activity.department}
+                              </Badge>
+                            </Tooltip>
+                          )}
                         </HStack>
 
                         <HStack spacing={3}>
@@ -593,7 +512,7 @@ const History = () => {
                             <HStack spacing={1}>
                               <Icon as={FiUser} color={textColor} boxSize={3} />
                               <Text fontSize="xs" color={textColor}>
-                                {activity.performedBy}
+                                {activity.actor_name}
                               </Text>
                             </HStack>
                           </Tooltip>
@@ -602,7 +521,7 @@ const History = () => {
                             <HStack spacing={1}>
                               <Icon as={FiClock} color={textColor} boxSize={3} />
                               <Text fontSize="xs" color={textColor}>
-                                {formatTime(activity.time)}
+                                {formatTime(activity.created_at)}
                               </Text>
                             </HStack>
                           </Tooltip>
@@ -610,20 +529,22 @@ const History = () => {
                       </Flex>
 
                       {/* Tags */}
-                      <HStack spacing={2} mt={3} flexWrap="wrap">
-                        {activity.tags.map((tag, index) => (
-                          <Badge
-                            key={index}
-                            variant="subtle"
-                            colorScheme="gray"
-                            fontSize="2xs"
-                            px={2}
-                            py={1}
-                          >
-                            {tag}
-                          </Badge>
-                        ))}
-                      </HStack>
+                      {activity.tags && activity.tags.length > 0 && (
+                        <HStack spacing={2} mt={3} flexWrap="wrap">
+                          {activity.tags.map((tag, index) => (
+                            <Badge
+                              key={index}
+                              variant="subtle"
+                              colorScheme="gray"
+                              fontSize="2xs"
+                              px={2}
+                              py={1}
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
+                        </HStack>
+                      )}
 
                       {/* Action Buttons */}
                       <Flex justify="flex-end" gap={2} mt={4}>
@@ -666,7 +587,7 @@ const History = () => {
                   </Text>
                   <VStack spacing={2} align="stretch">
                     {activityCategories.slice(1).map(category => {
-                      const count = filteredActivities.filter(a => a.category === category.id).length
+                      const count = filteredActivities.filter(a => a.action_type === category.id).length
                       const percentage = filteredActivities.length > 0 
                         ? Math.round((count / filteredActivities.length) * 100) 
                         : 0

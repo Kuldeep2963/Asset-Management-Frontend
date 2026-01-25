@@ -182,6 +182,7 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [serviceHistory, setServiceHistory] = useState([]);
   const [serviceUsers, setServiceUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAssetLoading, setIsAssetLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState(null);
   const [selectedService, setSelectedService] = useState(null);
@@ -201,7 +202,7 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
     service_user: '',
     priority: 'medium',
     estimated_duration: 2,
-    status: 'pending',
+    status: 'open',
     asset_search: '',
     user_search: '',
     asset_display: '',
@@ -234,7 +235,7 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const fetchAssets = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get(`${API_BASE_URL}/api/assets/`);
+      const response = await api.get(`${API_BASE_URL}/api/assets/id-list/`);
       const data = response.data.results || response.data || [];
       setAssets(data);
       calculateStats(data);
@@ -500,6 +501,66 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
       }
     });
 
+  const handleAssetSearch = async () => {
+    const searchTerm = (formData.asset_search || formData.asset_display || "").trim();
+    
+    if (!searchTerm && !formData.asset_id) {
+      toast({
+        title: 'Input required',
+        description: 'Please enter an asset ID or name to search',
+        status: 'warning',
+        duration: 2000,
+      });
+      return;
+    }
+
+    try {
+      setIsAssetLoading(true);
+      
+      let asset;
+      if (formData.asset_id) {
+        // If we have asset_id from dropdown selection, fetch that specific asset
+        const response = await api.get(`${API_BASE_URL}/api/assets/${formData.asset_id}/`);
+        asset = response.data;
+      } else {
+        // Otherwise search by the search term
+        const response = await api.get(`${API_BASE_URL}/api/assets/?asset_id=${searchTerm}`);
+        const data = response.data.results || response.data || [];
+        if (data.length > 0) {
+          asset = data[0];
+        }
+      }
+
+      if (asset) {
+        setSelectedAsset(asset);
+        setSelectedAssetId(asset.id.toString());
+        fetchServiceHistory(asset.id);
+      } else {
+        setSelectedAsset(null);
+        setSelectedAssetId('');
+        setServiceHistory([]);
+        toast({
+          title: 'Asset Not Found',
+          description: `No asset found matching "${searchTerm}"`,
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error searching assets:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to search assets',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsAssetLoading(false);
+    }
+  };
+
   const handleAssetSelect = (assetId) => {
     setSelectedAssetId(assetId);
     const asset = assets.find(a => a.id === parseInt(assetId));
@@ -596,7 +657,7 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   );
 
   return (
-    <Box bg={bgColor} p={{base:0,md:6}} minH="100vh" pt={{base:4,md:0}} mb={{base:8,md:0}}>
+    <Box bg={bgColor} p={{base:0,md:6}} minH="100vh" pt={{base:4,md:0}}>
       <Container maxW="container.2xl" py={{ base: 4, md: 8 }} pt={{ base: 0, md: 8 }}>
         {/* Header */}
         <Flex justify="space-between" align="center" mb={8} flexDirection={{base:"column",md:"row"}}>
@@ -632,18 +693,86 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
           <CardBody>
             <VStack align="stretch" spacing={4}>
               <FormControl>
-                <FormLabel>Choose Asset to View Service History</FormLabel>
-                <Select
-                  placeholder="Select an asset"
-                  value={selectedAssetId}
-                  onChange={(e) => handleAssetSelect(e.target.value)}
-                >
-                  {assets.map(asset => (
-                    <option key={asset.id} value={asset.id}>
-                      {asset.asset_id} - {asset.asset_name} ({asset.category})
-                    </option>
-                  ))}
-                </Select>
+                <FormLabel>Search Asset to View Service History</FormLabel>
+                <HStack spacing={2}>
+                  <Box position="relative" flex={1}>
+                    <Input
+                      placeholder="Search assets..."
+                      value={formData.asset_display || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          asset_search: value,
+                          asset_display: value,
+                          asset_id: ''
+                        }));
+                        setIsAssetDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsAssetDropdownOpen(true)}
+                      onBlur={() => {
+                        requestAnimationFrame(() => {
+                          setTimeout(() => setIsAssetDropdownOpen(false), 200);
+                        });
+                      }}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAssetSearch()}
+                    />
+                    {isAssetDropdownOpen && (
+                      <Box
+                        position="absolute"
+                        top="100%"
+                        left={0}
+                        right={0}
+                        bg="white"
+                        border="1px solid"
+                        borderColor="gray.200"
+                        borderRadius="md"
+                        zIndex={10}
+                        maxH="200px"
+                        overflowY="auto"
+                        mt={1}
+                        boxShadow="lg"
+                      >
+                        {assets
+                          .filter(asset => {
+                            const searchTerm = (formData.asset_search || "").toLowerCase();
+                            return (
+                              asset.asset_id.toLowerCase().includes(searchTerm) ||
+                              (asset.asset_name && asset.asset_name.toLowerCase().includes(searchTerm))
+                            );
+                          })
+                          .map(asset => (
+                            <Box
+                              key={asset.id}
+                              p={2}
+                              _hover={{ bg: "gray.100", cursor: "pointer" }}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setFormData(prev => ({ 
+                                  ...prev, 
+                                  asset_id: asset.id,
+                                  asset_display: `${asset.asset_id} (${asset.asset_name})`,
+                                  asset_search: ""
+                                }));
+                                setIsAssetDropdownOpen(false);
+                              }}
+                            >
+                              {asset.asset_id} ({asset.asset_name})
+                            </Box>
+                          ))}
+                      </Box>
+                    )}
+                  </Box>
+                  <Button
+                    onClick={handleAssetSearch}
+                    isLoading={isAssetLoading}
+                    colorScheme="blue"
+                    leftIcon={<FiSearch />}
+                  >
+                    Search
+                  </Button>
+                </HStack>
+                <Input type="hidden" name="asset_id" value={formData.asset_id} />
               </FormControl>
               
               {selectedAsset && (
@@ -654,13 +783,13 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
                         <Avatar boxSize={10} icon={getAssetIcon(selectedAsset.category)} bg="blue.100" color="blue.600" />
                         <VStack align="start" spacing={1}>
                           <Heading size="md">{selectedAsset.name}</Heading>
-                          <Text color={textColor}>Serial: {selectedAsset.serial_number}</Text>
+                          <Text color={textColor}>Asset Name: {selectedAsset.asset_name}</Text>
                           <HStack>
                             <Badge colorScheme="blue">{selectedAsset.category}</Badge>
                             <Badge colorScheme={selectedAsset.status === 'active' ? 'green' : 'red'}>
                               {selectedAsset.status}
                             </Badge>
-                            <Badge colorScheme="purple">Location: {selectedAsset.location}</Badge>
+                            {/* <Badge colorScheme="purple">Location: {selectedAsset.location}</Badge> */}
                           </HStack>
                         </VStack>
                       </HStack>
@@ -848,9 +977,9 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
                 {/* Desktop Table View */}
                 <TableContainer display={{ base: 'none', md: 'block' }}>
                   <Table variant="simple">
-                  <Thead bg={useColorModeValue('gray.50', 'gray.900')}>
+                  <Thead bg={useColorModeValue('gray.200', 'gray.900')}>
                     <Tr>
-                      <Th>
+                      <Th color={"black"}>
                         <Flex align="center" gap={2}>
                            Created Date
                           <Icon as={FiChevronDown} cursor="pointer" 
@@ -861,13 +990,13 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
                           />
                         </Flex>
                       </Th>
-                      <Th>Service Type</Th>
-                      <Th>Priority</Th>
-                      <Th>Assigned To</Th>
-                      <Th>Remarks</Th>
-                      <Th>Serviced Date</Th>
-                      <Th>Status</Th>
-                      <Th>Actions</Th>
+                      <Th color={"black"}>Service Type</Th>
+                      <Th color={"black"}>Priority</Th>
+                      <Th color={"black"}>Assigned To</Th>
+                      <Th color={"black"}>Remarks</Th>
+                      <Th color={"black"}>Serviced Date</Th>
+                      <Th color={"black"}>Status</Th>
+                      <Th color={"black"}>Actions</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -1024,8 +1153,7 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
                       if (!formData.asset_search) return true;
                       const searchTerm = formData.asset_search.toLowerCase();
                       return (
-                        asset.asset_id.toLowerCase().includes(searchTerm) ||
-                        asset.asset_name.toLowerCase().includes(searchTerm)
+                        asset.asset_id.toLowerCase().includes(searchTerm) 
                       );
                     })
                     .map(asset => (
@@ -1248,32 +1376,42 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
                   <Divider />
                   
                   <VStack align="stretch" spacing={3}>
-                    <Box>
+                    <HStack justify={"space-between"}>
+                    <Box justifyContent={"right"}>
+                      <Text fontSize="sm" color={textColor}>Asset ID</Text>
+                      <Text fontWeight="bold" fontSize="lg">{selectedAsset.asset_id}</Text>
+                    </Box>
+                    <Box justifyContent={"left"}>
                       <Text fontSize="sm" color={textColor}>Asset Name</Text>
-                      <Text fontWeight="bold" fontSize="lg">{selectedAsset.name}</Text>
+                      <Text fontWeight="bold" fontSize="lg">{selectedAsset.asset_name}</Text>
                     </Box>
+                    </HStack>
                     
-                    <Box>
+                    <HStack justify={"space-between"}>
+                    <Box justifyContent={"right"}>
                       <Text fontSize="sm" color={textColor}>Serial Number</Text>
-                      <Text>{selectedAsset.serial_number}</Text>
+                      <Text>{selectedAsset.asset_type}</Text>
                     </Box>
                     
-                    <Box>
+                    <Box justifyContent={"left"}>
                       <Text fontSize="sm" color={textColor}>Category</Text>
                       <Badge colorScheme="blue">{selectedAsset.category}</Badge>
                     </Box>
-                    
-                    <Box>
+                    </HStack>
+                
+                    <HStack justify={"space-between"}>
+                    <Box justifyContent={"right"}>
                       <Text fontSize="sm" color={textColor}>Status</Text>
                       <Badge colorScheme={selectedAsset.status === 'active' ? 'green' : 'red'}>
                         {selectedAsset.status}
                       </Badge>
                     </Box>
                     
-                    <Box>
+                    <Box justifyContent={"right"}>
                       <Text fontSize="sm" color={textColor}>Location</Text>
                       <Text>{selectedAsset.location}</Text>
                     </Box>
+                    </HStack>
                     
                     {/* <Box>
                       <Text fontSize="sm" color={textColor}>Purchase Date</Text>
