@@ -10,7 +10,7 @@ export default defineConfig({
       includeAssets: ["assetcore2_64.png", "assetcore2_192.png", "assetcore2_384.png"],
       manifest: {
         name: "Asset Management System",
-        short_name: "Assets",
+        short_name: "AssetCore",
         description: "Manage your assets efficiently",
         theme_color: "#1976d2",
         background_color: "#ffffff",
