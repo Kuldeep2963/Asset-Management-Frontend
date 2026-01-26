@@ -3,13 +3,11 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  base: '/',
   plugins: [
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      workbox:{
-        cleanupOutdatedCaches:true
-      },
       includeAssets: ["assetcore2_64.png", "assetcore2_192.png", "assetcore2_384.png"],
       manifest: {
         name: "Asset Management System",
@@ -47,6 +45,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        cleanupOutdatedCaches:true,
+        navigateFallback:"/index.html",
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         runtimeCaching: [
           {
