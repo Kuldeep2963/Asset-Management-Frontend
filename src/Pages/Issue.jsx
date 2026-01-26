@@ -813,7 +813,7 @@ const Issue = () => {
 
     // Pre-populate form with existing assignment if any
     setAssignmentForm({
-      assigned_to: issue.assigned_to || "",
+      assigned_to: issue.assigned_to && issue.assigned_to.id || "",
       status: issue.status || "assigned",
       deadline: issue.estimated_resolution || "",
       // estimatedHours: "",
@@ -2507,7 +2507,7 @@ const Issue = () => {
                 <FormControl isRequired>
                   <FormLabel>Assign to User</FormLabel>
                   <Select
-                    value={assignmentForm.assigned_to.id}
+                    value={assignmentForm.assigned_to}
                     onChange={(e) =>
                       setAssignmentForm({
                         ...assignmentForm,
