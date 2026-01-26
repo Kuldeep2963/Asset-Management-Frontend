@@ -214,26 +214,27 @@ const AssetInventory = () => {
   const categories = [...new Set(assets.map((asset) => asset.category))];
 
   const handleViewDetails = (asset) => {
-    navigate(`/add-asset?id=${asset.id}&view=true`);
+    navigate(`/assets/add-asset?id=${asset.id}&view=true`);
   };
 
   const canManageAssets =
     user?.role === "org_admin" || user?.role === "unit_admin";
 
   const handleEdit = (assetId) => {
-    navigate(`/add-asset?id=${assetId}`);
+    navigate(`/assets/add-asset?id=${assetId}`);
   };
 
   return (
     <Box
-      mb={{ base: "65`px", md: 0 }}
+      mb={{ base: "4", md: 0 }}
       bg={bgColor}
-      minH="100vh"
+      // minH="100vh"
       p={{ base: 2, md: 8 }}
       pt={{ base: 4, md: 8 }}
     >
       <Container maxW="8xl">
         <VStack spacing={6} align="stretch">
+          
           <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
             <HStack spacing={3}>
               <Icon as={FiPackage} boxSize={8} color="blue.500" />
@@ -247,25 +248,64 @@ const AssetInventory = () => {
               </Box>
             </HStack>
             {canManageAssets && (
-              <HStack spacing={4}>
-                <Button
-                  leftIcon={<FiUpload />}
-                  size={"sm"}
-                  colorScheme="green"
-                  variant={"solid"}
-                  onClick={onBulkUploadOpen}
-                >
-                  Bulk Upload
-                </Button>
+              <Flex
+                flexDirection={{ base: "column", md: "row" }}
+                gap={{ base: 2, md: 2 }}
+                alignItems={{ base: "stretch", md: "center" }}
+                w={"full"}
+              >
+                <Flex flexDirection={"row"} gap={5}>
+                  <Button
+                    leftIcon={<FiPackage />}
+                    colorScheme="orange"
+                    onClick={() => navigate("/assets/asset-schema")}
+                    size={{ base: "xs", md: "sm" }}
+                    width={{ base: "100%", md: "auto" }}
+                  >
+                    <Text display={{ base: "none", sm: "inline" }}>
+                      Edit Asset Schema
+                    </Text>
+                    <Text display={{ base: "inline", sm: "none" }}>Schema</Text>
+                  </Button>
+
+                  <Button
+                    leftIcon={<FiUpload />}
+                    size={{ base: "xs", md: "sm" }}
+                    colorScheme="green"
+                    variant="solid"
+                    onClick={onBulkUploadOpen}
+                    width={{ base: "100%", md: "auto" }}
+                  >
+                    <Text>Bulk Upload</Text>
+                  </Button>
+                </Flex>
+                <Flex flexDirection={"row"} gap={5}>
                 <Button
                   leftIcon={<FiPlus />}
                   colorScheme="blue"
-                  onClick={() => navigate("/add-asset")}
-                  size="sm"
+                  onClick={() => navigate("/assets/add-asset")}
+                  size={{ base: "xs", md: "sm" }}
+                  width={{ base: "100%", md: "auto" }}
                 >
-                  Add New Asset
+                  <Text display={{ base: "none", sm: "inline" }}>
+                    Add New Asset
+                  </Text>
+                  <Text display={{ base: "inline", sm: "none" }}>
+                    Add Asset
+                  </Text>
                 </Button>
-              </HStack>
+                <Button
+                    leftIcon={<FiDownload />}
+                    variant="solid"
+                    colorScheme="purple"
+                    onClick={handleExportAssets}
+                    size={{ base: "xs", md: "sm" }}
+                  width={{ base: "100%", md: "auto" }}
+                  >
+                    Export
+                  </Button>
+                  </Flex>
+              </Flex>
             )}
           </Flex>
 
@@ -290,6 +330,7 @@ const AssetInventory = () => {
                   </InputGroup>
 
                   <Button
+                    size="sm"
                     colorScheme="blue"
                     onClick={handleSearch}
                     leftIcon={<FiSearch />}
@@ -310,13 +351,7 @@ const AssetInventory = () => {
                     ))}
                   </Select>
 
-                  <Button
-                    leftIcon={<FiDownload />}
-                    variant="outline"
-                    onClick={handleExportAssets}
-                  >
-                    Export
-                  </Button>
+                  
                 </Flex>
 
                 {loading ? (
@@ -337,7 +372,7 @@ const AssetInventory = () => {
                       <Button
                         leftIcon={<FiPlus />}
                         colorScheme="blue"
-                        onClick={() => navigate("/add-asset")}
+                        onClick={() => navigate("/assets/add-asset")}
                       >
                         Add Your First Asset
                       </Button>

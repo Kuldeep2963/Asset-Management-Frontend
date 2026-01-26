@@ -691,8 +691,8 @@ const Navbar = () => {
   
   // Find active tab index
   const getActiveTabIndex = () => {
-    const index = navItems.findIndex(item => item.path === location.pathname);
-    return index >= 0 ? index : 0;
+    const index = navItems.findIndex(item => location.pathname.includes(item.path));
+    return index >= 0 ? index : "";
   };
 
   const handleLogout = () => {
@@ -880,13 +880,7 @@ const Navbar = () => {
                 >
                   My Profile
                 </MenuItem>
-                <MenuItem 
-                  icon={<SettingsIcon />} 
-                  onClick={() => navigate('/settings')}
-                  fontSize="sm"
-                >
-                  Settings
-                </MenuItem>
+                
                 <MenuDivider />
                 <MenuItem 
                   icon={<FaSignOutAlt />}
@@ -979,19 +973,7 @@ const Navbar = () => {
                 >
                   My Profile
                 </Button>
-                <Button
-                  variant="ghost"
-                  justifyContent="flex-start"
-                  leftIcon={<SettingsIcon />}
-                  onClick={() => {
-                    navigate('/settings');
-                    onClose();
-                  }}
-                  size="lg"
-                  w="full"
-                >
-                  Settings
-                </Button>
+                
                 <Button
                   variant="ghost"
                   justifyContent="flex-start"

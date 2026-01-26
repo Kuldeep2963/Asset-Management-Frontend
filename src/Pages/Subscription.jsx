@@ -129,8 +129,10 @@ const Subscription = () => {
   const [currentFAQ, setCurrentFAQ] = useState('');
   const [plans, setPlans] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const userdata = localStorage.getItem("user") || sessionStorage.getItem("user");
-  const user = userdata ? JSON.parse(userdata) : null;
+  const [user, setUser] = useState(() => {
+    const userdata = localStorage.getItem("user") || sessionStorage.getItem("user");
+    return userdata ? JSON.parse(userdata) : null;
+  });
   
   useEffect(() => {
     fetchPlans();
@@ -143,8 +145,11 @@ const Subscription = () => {
       const plansData = response.data.results || response.data || [];
       const activePlans = Array.isArray(plansData) ? plansData.filter(plan => plan.is_active) : [];
       setPlans(activePlans);
+      
       if (activePlans.length > 0 && !selectedPlan) {
-        setSelectedPlan(activePlans[0].id);
+        const currentPlanName = user?.organization?.plan?.plan_name;
+        const currentPlan = activePlans.find(p => p.name === currentPlanName);
+        setSelectedPlan(currentPlan ? currentPlan.id : activePlans[0].id);
       }
     } catch (error) {
       console.error('Error fetching plans:', error);
@@ -312,7 +317,32 @@ const Subscription = () => {
         organization_id: user ? user.organization.id : null,
       };
 
-      await api.post(`${API_BASE_URL}/api/subscriptions/assign/`, subscriptionData);
+      const response = await api.post(`${API_BASE_URL}/api/subscriptions/assign/`, subscriptionData);
+      
+      // Update user data with new plan details from response
+      const updatedPlan = {
+        ...response.data,
+        plan_name: response.data.plan_name,
+        expiry_date: response.data.end_date,
+        is_expired: response.data.status !== 'active',
+        remaining_days: response.data.remaining_days || Math.ceil((new Date(response.data.end_date) - new Date()) / (1000 * 60 * 60 * 24))
+      };
+
+      const updatedUser = {
+        ...user,
+        organization: {
+          ...user.organization,
+          plan: updatedPlan
+        }
+      };
+
+      // Update state and storage
+      setUser(updatedUser);
+      if (localStorage.getItem("user")) {
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+      } else if (sessionStorage.getItem("user")) {
+        sessionStorage.setItem("user", JSON.stringify(updatedUser));
+      }
       
       toast({
         title: 'Subscription Successful',
@@ -339,6 +369,8 @@ const Subscription = () => {
   };
 
   const cardBg = useColorModeValue('white', 'gray.800');
+  const activePlanBg = useColorModeValue('green.50', 'gray.700');
+  const activePlanBorder = useColorModeValue('green.500', 'green.400');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const headingColor = useColorModeValue('gray.800', 'white');
   const textColor = useColorModeValue('gray.600', 'gray.300');
@@ -449,15 +481,16 @@ const Subscription = () => {
             {plans.map((plan, index) => {
               const planColor = getPlanColor(index);
               const planIcon = getPlanIcon(index);
+              const isCurrentPlan = user?.organization?.plan?.plan_name === plan.name;
               
               return (
                 <GridItem key={plan.id}>
                   <Card
                     border="2px"
-                    borderColor={selectedPlan === plan.id ? `${planColor}.500` : borderColor}
-                    bg={cardBg}
-                    shadow={selectedPlan === plan.id ? 'xl' : 'md'}
-                    transform={selectedPlan === plan.id ? 'translateY(-4px)' : 'none'}
+                    borderColor={isCurrentPlan ? activePlanBorder : (selectedPlan === plan.id ? `${planColor}.500` : borderColor)}
+                    bg={isCurrentPlan ? activePlanBg : cardBg}
+                    shadow={isCurrentPlan || selectedPlan === plan.id ? 'xl' : 'md'}
+                    transform={isCurrentPlan || selectedPlan === plan.id ? 'translateY(-4px)' : 'none'}
                     transition="all 0.3s"
                     _hover={{ shadow: 'lg', transform: 'translateY(-4px)' }}
                     cursor="pointer"
@@ -465,8 +498,15 @@ const Subscription = () => {
                     position="relative"
                     h="full"
                   >
-                    {plan.is_default && (
-                      <Box position="absolute" top="-3" left="50%" transform="translateX(-50%)">
+                    {isCurrentPlan && (
+                      <Box position="absolute" top="-3" left="50%" transform="translateX(-50%)" zIndex={1}>
+                        <Badge colorScheme="green" px={4} py={1} rounded="full" fontSize="sm" variant="solid">
+                          Active Plan
+                        </Badge>
+                      </Box>
+                    )}
+                    {plan.is_default && !isCurrentPlan && (
+                      <Box position="absolute" top="-3" left="50%" transform="translateX(-50%)" zIndex={1}>
                         <Badge colorScheme="blue" px={4} py={1} rounded="full" fontSize="sm">
                           Recommended
                         </Badge>
@@ -561,19 +601,34 @@ const Subscription = () => {
                     </CardBody>
 
                     <CardFooter pt={0}>
-                      <Button
-                        colorScheme={planColor}
-                        size="lg"
-                        w="full"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSubscribe(plan.id);
-                        }}
-                        rightIcon={<FaArrowRight />}
-                        variant={selectedPlan === plan.id ? 'solid' : 'outline'}
-                      >
-                        Subscribe Now
-                      </Button>
+                      {isCurrentPlan ? (
+                        <Button
+                          w="full"
+                          size="lg"
+                          colorScheme="green"
+                          variant="solid"
+                          leftIcon={<FaCheck />}
+                          cursor="default"
+                          _hover={{}}
+                          _active={{}}
+                        >
+                          Subscribed
+                        </Button>
+                      ) : (
+                        <Button
+                          colorScheme={planColor}
+                          size="lg"
+                          w="full"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSubscribe(plan.id);
+                          }}
+                          rightIcon={<FaArrowRight />}
+                          variant={selectedPlan === plan.id ? 'solid' : 'outline'}
+                        >
+                          Subscribe Now
+                        </Button>
+                      )}
                     </CardFooter>
                   </Card>
                 </GridItem>
@@ -603,15 +658,29 @@ const Subscription = () => {
                 </HStack>
               </VStack>
               
-              <Button
-                colorScheme="blue"
-                size="lg"
-                px={12}
-                onClick={() => handleSubscribe(selectedPlan)}
-                rightIcon={<FaArrowRight />}
-              >
-                Subscribe to Plan
-              </Button>
+              {plans.find(p => p.id === selectedPlan).name === user?.organization?.plan?.plan_name ? (
+                <Button
+                  colorScheme="green"
+                  size="lg"
+                  px={12}
+                  leftIcon={<FaCheck />}
+                  cursor="default"
+                  _hover={{}}
+                  _active={{}}
+                >
+                  Current Plan
+                </Button>
+              ) : (
+                <Button
+                  colorScheme="blue"
+                  size="lg"
+                  px={12}
+                  onClick={() => handleSubscribe(selectedPlan)}
+                  rightIcon={<FaArrowRight />}
+                >
+                  Subscribe to Plan
+                </Button>
+              )}
             </Flex>
           </CardBody>
         </Card>

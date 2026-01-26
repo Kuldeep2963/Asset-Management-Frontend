@@ -1515,7 +1515,8 @@ const UserManagement = () => {
                         </SimpleGrid>
 
                         {/* Desktop view */}
-                        <Table
+            
+                        {filteredOrganizations ? (<Table
                           variant="simple"
                           display={{ base: "none", md: "table" }}
                         >
@@ -1608,7 +1609,7 @@ const UserManagement = () => {
                               </Tr>
                             ))}
                           </Tbody>
-                        </Table>
+                        </Table>): <Text>No Organization created till now</Text>}
                       </>
                     )}
                   </CardBody>
@@ -1831,7 +1832,7 @@ const UserManagement = () => {
                           <Skeleton key={i} height="120px" borderRadius="md" />
                         ))}
                       </VStack>
-                    ) : (
+                    ) : units && units.length>0 ? (
                       <SimpleGrid
                         columns={{ base: 1, md: 2, lg: 3 }}
                         spacing={4}
@@ -1934,7 +1935,7 @@ const UserManagement = () => {
                           </Card>
                         ))}
                       </SimpleGrid>
-                    )}
+                    ):<Text align={"center"} fontStyle={"italic"}>No units found</Text>}
                   </CardBody>
                 </Card>
               </TabPanel>
@@ -1959,7 +1960,7 @@ const UserManagement = () => {
                         </Button>
                       </Flex>
                     </Flex>
-                    <InputGroup w="300px" mb={4}>
+                   {filteredUnitAdmins.length>0 && ( <InputGroup w="300px" mb={4}>
                       <InputLeftElement pointerEvents="none">
                         <FiSearch color="gray.300" />
                       </InputLeftElement>
@@ -1969,10 +1970,10 @@ const UserManagement = () => {
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </InputGroup>
-
+)}
                     {loading.unitAdmins ? (
                       <TableSkeleton rows={3} columns={7} />
-                    ) : (
+                    ) : filteredUnitAdmins && filteredUnitAdmins>0 ? (
                       <>
                         {/* Mobile view */}
                         <SimpleGrid
@@ -2186,7 +2187,7 @@ const UserManagement = () => {
                           </Tbody>
                         </Table>
                       </>
-                    )}
+                    ):<Text align={"center"} fontStyle={"italic"}>No unit admins found</Text>}
                   </CardBody>
                 </Card>
               </TabPanel>
@@ -2204,7 +2205,7 @@ const UserManagement = () => {
                     >
                       <Heading size="md">Departments</Heading>
                       <HStack spacing={4}>
-                        {userRole === "org_admin" && (
+                        {userRole === "org_admin" && filteredDepartments.length>0 && (
                           <Select
                             placeholder="All Units"
                             size="sm"
@@ -2241,7 +2242,7 @@ const UserManagement = () => {
 
                     {loading.departments ? (
                       <TableSkeleton rows={3} columns={4} />
-                    ) : (
+                    ) : filteredDepartments && filteredDepartments.length > 0 ? (
                       <>
                         <InputGroup mb={4}>
                           <InputLeftElement pointerEvents="none">
@@ -2357,13 +2358,13 @@ const UserManagement = () => {
                         >
                           <Thead bg={"gray.200"}>
                             <Tr>
-                              <Th>Id</Th>
-                              <Th>Name</Th>
-                              <Th>Unit</Th>
-                              <Th>Total Users</Th>
-                              <Th>Total Assets</Th>
-                              <Th>Status</Th>
-                              <Th>Actions</Th>
+                              <Th color={"black"}>Id</Th>
+                              <Th color={"black"}>Name</Th>
+                              <Th color={"black"}>Unit</Th>
+                              <Th color={"black"}>Total Users</Th>
+                              <Th color={"black"}>Total Assets</Th>
+                              <Th color={"black"}>Status</Th>
+                              <Th color={"black"}>Actions</Th>
                             </Tr>
                           </Thead>
                           <Tbody>
@@ -2427,7 +2428,7 @@ const UserManagement = () => {
                           </Tbody>
                         </Table>
                       </>
-                    )}
+                    ):<Text align={"center"} fontStyle={"italic"}>No Department found</Text>}
                   </CardBody>
                 </Card>
               </TabPanel>
@@ -2450,7 +2451,7 @@ const UserManagement = () => {
                         Add User
                       </Button>
                     </Flex>
-                    <InputGroup mb={4}>
+                    {filteredUsers.length>0 &&(<InputGroup mb={4}>
                       <InputLeftElement pointerEvents="none">
                         <FiSearch color="gray.300" />
                       </InputLeftElement>
@@ -2459,11 +2460,11 @@ const UserManagement = () => {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
-                    </InputGroup>
+                    </InputGroup>)}
 
                     {loading.users ? (
                       <TableSkeleton rows={3} columns={6} />
-                    ) : (
+                    ) : filteredUsers && filteredUsers.length >0 ? (
                       <>
                         {/* Mobile view */}
                         <SimpleGrid
@@ -2692,7 +2693,7 @@ const UserManagement = () => {
                           </Tbody>
                         </Table>
                       </>
-                    )}
+                    ):<Text align={"center"} fontStyle={"italic"}>No Users found</Text>}
                   </CardBody>
                 </Card>
               </TabPanel>

@@ -38,18 +38,20 @@ import {
   FiXCircle,
   FiEdit,
   FiTool,
+  FiArrowDownLeft,
 } from "react-icons/fi";
+import { FaArrowLeft } from "react-icons/fa";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import AssignContractModal from "../Components/modals/AssignContractModal";
 import { useAuth } from "../context/AuthContext";
+
 
 const AddAsset = () => {
   const { user } = useAuth();
   const BACKEND_API = import.meta.env.VITE_API_URL;
   const toast = useToast();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const assetId = searchParams.get("id");
   const viewMode = searchParams.get("view") === "true";
 
@@ -61,7 +63,7 @@ const AddAsset = () => {
   const headingColor = useColorModeValue("gray.800", "white");
   const primaryColor = useColorModeValue("blue.600", "blue.400");
   const successColor = useColorModeValue("green.500", "green.400");
-
+  const navigate = useNavigate();
   // Asset schema state
   const [assetSchema, setAssetSchema] = useState([]);
   const [customFields, setCustomFields] = useState({});
@@ -529,16 +531,17 @@ const AddAsset = () => {
       </Button>
     )}
     <Button
-      colorScheme="red"
-      variant="outline"
+      colorScheme="green"
+      variant="solid"
             size="sm"
 
-      leftIcon={<FiXCircle />}
+      leftIcon={<FaArrowLeft />}
       onClick={() => navigate("/assets")}
       
     >
-      {viewMode ? "Close" : "Cancel"}
+      Back to Assets
     </Button>
+    
   </VStack>
 
   {/* Desktop: HStack */}
@@ -566,13 +569,13 @@ const AddAsset = () => {
       </Button>
     )}
     <Button
-      colorScheme="red"
-      variant="outline"
+      colorScheme="green"
+      variant="solid"
       size="sm"
-      leftIcon={<FiXCircle />}
+      leftIcon={<FaArrowLeft/>}
       onClick={() => navigate("/assets")}
     >
-      {viewMode ? "Close" : "Cancel"}
+      Back to assets
     </Button>
   </HStack>
 </>

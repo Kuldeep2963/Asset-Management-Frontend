@@ -12,7 +12,7 @@ import Issue from './Pages/Issue';
 import Subscription from './Pages/Subscription';
 import Plan from './Pages/Plan';
 import Amc from './Pages/AMC';
-import Settings from './Pages/Settings';
+import Addschema from './Pages/Addschema';
 import Services from './Pages/Services';
 import ResetPassword from './Pages/ResetPassword';
 import { useAuth } from './context/AuthContext';
@@ -49,12 +49,12 @@ function App() {
           <Route path='/subscription' element={<ProtectedRoute><Subscription /></ProtectedRoute>}/>
           <Route path='/issue' element={<ProtectedRoute><Issue /></ProtectedRoute>}/>
           <Route path='/assets' element={<ProtectedRoute><AssetInventory /></ProtectedRoute>}/>
-          <Route path='/add-asset' element={<ProtectedRoute><Addasset /></ProtectedRoute>}/>
+          <Route path='/assets/add-asset' element={<ProtectedRoute><Addasset /></ProtectedRoute>}/>
           <Route path='/history' element={<ProtectedRoute><History /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/users" element={<ProtectedRoute><UserManagement/></ProtectedRoute>}/>
           <Route path="/amc_cmc" element={<ProtectedRoute><Amc/></ProtectedRoute>}/>
-          <Route path="/settings" element={<ProtectedRoute><Settings/></ProtectedRoute>}/>
+          <Route path="/assets/asset-schema" element={<ProtectedRoute><Addschema/></ProtectedRoute>}/>
           <Route path="/services" element={<ProtectedRoute><Services/></ProtectedRoute>}/>
           <Route path="/profile" element={<ProtectedRoute><Profile/></ProtectedRoute>}/>
         </Routes>

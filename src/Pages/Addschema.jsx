@@ -21,6 +21,7 @@ import {
   IconButton,
   Table,
   Thead,
+  Spacer,
   Tbody,
   Tr,
   Th,
@@ -32,11 +33,13 @@ import {
   Flex,
 } from "@chakra-ui/react";
 
-import { FiPlus, FiSave, FiTrash2, FiSettings } from "react-icons/fi";
+import { FiPlus, FiSave, FiTrash2, FiSettings, FiPackage } from "react-icons/fi";
+import { useNavigate } from 'react-router-dom';
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { FaArrowLeft } from "react-icons/fa";
 
-const Settings = () => {
+const Addschema = () => {
   const { user } = useAuth();
   const toast = useToast();
 
@@ -48,7 +51,8 @@ const Settings = () => {
 
   const [assetSchema, setAssetSchema] = useState([]);
   const [categories, setCategories] = useState([]);
-
+const navigate = useNavigate();
+  
   const [newField, setNewField] = useState({
     key: "",
     label: "",
@@ -216,15 +220,17 @@ const Settings = () => {
       
         <VStack spacing={6} align="stretch">
           <HStack spacing={3}>
-            <Icon as={FiSettings} boxSize={8} color="blue.500" />
+            <Icon as={FiPackage} boxSize={8} color="blue.500" />
             <Box>
               <Heading size="lg" color={headingColor}>
-                Settings
+                Asset Schema
               </Heading>
               <Text fontSize="sm" color={textColor}>
                 Manage custom fields for assets
               </Text>
             </Box>
+            <Spacer/>
+            <Button size={"sm"} colorScheme="green" onClick={()=>(navigate('/assets'))} leftIcon={<FaArrowLeft/>}>Back to Assets</Button>
           </HStack>
 
           <Alert status="info" borderRadius="md">
@@ -423,4 +429,4 @@ const Settings = () => {
   );
 };
 
-export default Settings;
+export default Addschema;
