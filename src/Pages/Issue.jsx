@@ -574,7 +574,10 @@ const Issue = () => {
     const open = issues.filter((i) => i.status === "open").length;
     const inProgress = issues.filter((i) => i.status === "in_progress").length;
     const resolved = issues.filter(
-      (i) => i.status === "resolved" || i.status === "closed",
+      (i) => i.status === "resolved",
+    ).length;
+    const closed = issues.filter(
+      (i) => i.status === "closed",
     ).length;
     const assigned = issues.filter(
       (i) => i.assigned_to !== null && i.assigned_to !== undefined,
@@ -587,6 +590,7 @@ const Issue = () => {
       inProgress,
       resolved,
       assigned,
+      closed,
       avgResolutionTime: "2.5",
       slaCompliance: `${slaCompliance}%`,
     });
@@ -694,8 +698,9 @@ const Issue = () => {
       // Process all selected issues
       const promises = issueIds.map(async (issueId) => {
         // Prepare payload according to API documentation
+        console.log(assignmentForm)
         const payload = {
-          assigned_to_id: assignmentForm.assigned_to.id,
+          assigned_to_id: assignmentForm.assigned_to,
           status: assignmentForm.status,
           ...(assignmentForm.deadline && {
             estimated_resolution: assignmentForm.deadline,
@@ -827,6 +832,33 @@ const Issue = () => {
       return `${user.first_name} ${user.last_name}`;
     }
     return "Unknown User";
+  };
+
+  const handleDeleteIssue = async (issueId) => {
+    if (window.confirm("Are you sure you want to delete this issue?")) {
+      try {
+        await api.delete(`/api/issues/${issueId}/`);
+        setIssues(issues.filter((issue) => issue.id !== issueId));
+        toast({
+          title: "Issue Deleted",
+          description: "The issue has been successfully deleted.",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      } catch (error) {
+        console.error("Error deleting issue:", error);
+        toast({
+          title: "Delete Failed",
+          description:
+            error.response?.data?.detail ||
+            "Could not delete issue. Please try again.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    }
   };
 
   
@@ -1627,6 +1659,22 @@ const Issue = () => {
                                               View Details
                                             </Button>
                                           </Tooltip>
+                                          {can_comment_and_can_assign && (
+                                            <Tooltip label="Delete">
+                                              <Button
+                                                leftIcon={<FiTrash2 />}
+                                                size="xs"
+                                                variant="outline"
+                                                colorScheme="red"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleDeleteIssue(issue.id);
+                                                }}
+                                              >
+                                                Delete
+                                              </Button>
+                                            </Tooltip>
+                                          )}
                                         </HStack>
                                         <Text fontSize="xs" color={textColor}>
                                           {formatDistanceToNow(
@@ -1914,6 +1962,24 @@ const Issue = () => {
                                                 }}
                                               />
                                             </Tooltip>
+                                            {can_comment_and_can_assign && (
+                                              <Tooltip
+                                                bg={"white"}
+                                                color={"red.500"}
+                                                label="Delete Issue"
+                                              >
+                                                <IconButton
+                                                  aria-label="Delete issue"
+                                                  icon={<FiTrash2 />}
+                                                  size="sm"
+                                                  variant="ghost"
+                                                  colorScheme="red"
+                                                  onClick={() =>
+                                                    handleDeleteIssue(issue.id)
+                                                  }
+                                                />
+                                              </Tooltip>
+                                            )}
                                             <Button
                                               leftIcon={<FiMessageSquare />}
                                               variant="outline"
