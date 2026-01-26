@@ -129,9 +129,17 @@ import { useAuth } from "../context/AuthContext";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { formatDistanceToNow } from "date-fns";
 import CommentModal from "../Components/modals/CommentModal";
+
+import { useSearchParams } from 'react-router-dom';
+
 const Issue = () => {
   const { user } = useAuth();
   const toast = useToast();
+
+  
+
+  const [searchParams] = useSearchParams();
+  const q_asset_name = searchParams.get('asset_name');
 
   // Color mode values
   const bgColor = useColorModeValue("gray.50", "gray.900");
@@ -197,7 +205,14 @@ const Issue = () => {
 
   // State
   const [activeTab, setActiveTab] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(q_asset_name || "");
+
+  useEffect(() => {
+    if (q_asset_name) {
+      setSearchQuery(q_asset_name);
+    }
+  }, [q_asset_name]);
+
   const [selectedIssues, setSelectedIssues] = useState([]);
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [selectedIssueForComment, setSelectedIssueForComment] = useState(null);
@@ -206,6 +221,29 @@ const Issue = () => {
     setSelectedIssueForComment(issue);
     onCommentOpen();
   };
+
+  const handleExportData = async () => {
+    try {
+      const response = await api.get("/api/issues/export/", {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Issues-${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      toast({
+        title: "Error exporting data",
+        description: error.message,
+        status: "error",
+        duration: 5000,
+      });
+    }
+  };
+
   const [filter, setFilter] = useState({
     priority: "all",
     status: "all",
@@ -657,7 +695,7 @@ const Issue = () => {
       const promises = issueIds.map(async (issueId) => {
         // Prepare payload according to API documentation
         const payload = {
-          assigned_to_id: assignmentForm.assigned_to,
+          assigned_to_id: assignmentForm.assigned_to.id,
           status: assignmentForm.status,
           ...(assignmentForm.deadline && {
             estimated_resolution: assignmentForm.deadline,
@@ -690,7 +728,7 @@ const Issue = () => {
             ...issue,
             assigned_to: updatedIssue.assigned_to,
             assigned_to_name: assignedUser
-              ? `${assignedUser.first_name} ${assignedUser.last_name}`
+              ? `${assignedUser.name} `
               : "Unknown User",
             assigned_to_email: assignedUser?.email || "",
             status: updatedIssue.status,
@@ -723,7 +761,7 @@ const Issue = () => {
         assigned_to: "",
         status: "assigned",
         deadline: "",
-        estimatedHours: "",
+        // estimatedHours: "",
         notes: "",
       });
 
@@ -773,7 +811,7 @@ const Issue = () => {
       assigned_to: issue.assigned_to || "",
       status: issue.status || "assigned",
       deadline: issue.estimated_resolution || "",
-      estimatedHours: "",
+      // estimatedHours: "",
       notes: "",
     });
 
@@ -790,6 +828,8 @@ const Issue = () => {
     }
     return "Unknown User";
   };
+
+  
 
   // Update your table button to use this new function
   const handleIssueSelect = (issueId) => {
@@ -1271,6 +1311,7 @@ const Issue = () => {
                   leftIcon={<FiDownload />}
                   variant="outline"
                   size="sm"
+                  onClick={handleExportData}
                 >
                   Export
                 </Button>
@@ -1543,9 +1584,9 @@ const Issue = () => {
                                             )}
                                           />
                                           <Text fontSize="sm">
-                                            {getUserDisplayName(
-                                              issue.assigned_to.name,
-                                            )}
+                                            
+                                              {issue.assigned_to.name}
+                                           
                                           </Text>
                                         </Flex>
                                       )}
@@ -2400,7 +2441,7 @@ const Issue = () => {
                 <FormControl isRequired>
                   <FormLabel>Assign to User</FormLabel>
                   <Select
-                    value={assignmentForm.assigned_to}
+                    value={assignmentForm.assigned_to.id}
                     onChange={(e) =>
                       setAssignmentForm({
                         ...assignmentForm,
@@ -2463,21 +2504,7 @@ const Issue = () => {
                     />
                   </FormControl>
 
-                  <FormControl>
-                    <FormLabel>Estimated Hours</FormLabel>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={assignmentForm.estimatedHours}
-                      onChange={(e) =>
-                        setAssignmentForm({
-                          ...assignmentForm,
-                          estimatedHours: e.target.value,
-                        })
-                      }
-                      placeholder="Hours"
-                    />
-                  </FormControl>
+                  
                 </SimpleGrid>
 
                 <FormControl>
@@ -2536,7 +2563,7 @@ const Issue = () => {
       <Drawer
         isOpen={isDetailOpen}
         onClose={onDetailClose}
-        size={{ base: "xs", md: "sm" }}
+        size={{ base: "sm", md: "sm" }}
       >
         <DrawerOverlay />
         <DrawerContent>
@@ -2708,7 +2735,7 @@ const Issue = () => {
                     <Flex align="center">
                       <Icon as={FiPaperclip} mr={2} />
                       <Text fontWeight="semibold">
-                        Attachments ({selectedIssue.attachments?.length || 0})
+                        Attachments ({selectedIssue.images?.length || 0})
                       </Text>
                     </Flex>
                     <Icon
@@ -2720,44 +2747,86 @@ const Issue = () => {
                   <Collapse in={showAttachments}>
                     <Card variant="outline" p={3}>
                       <VStack align="stretch" spacing={3}>
-                        {selectedIssue.attachments &&
-                        selectedIssue.attachments.length > 0 ? (
-                          selectedIssue.attachments.map((attachment, index) => (
-                            <Flex
-                              key={index}
-                              justify="space-between"
-                              align="center"
-                              p={2}
-                              bg={bgColor}
-                              borderRadius="md"
-                            >
-                              <Flex align="center">
-                                <Icon
-                                  as={getFileIcon(attachment.type)}
-                                  mr={2}
-                                />
-                                <VStack align="start" spacing={0}>
-                                  <Text fontSize="sm" fontWeight="medium">
-                                    {attachment.name}
-                                  </Text>
-                                  <Text fontSize="xs" color="gray.500">
-                                    {formatFileSize(attachment.size)} •{" "}
-                                    {formatDate(attachment.uploaded)}
-                                  </Text>
-                                </VStack>
-                              </Flex>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                leftIcon={<FiDownload />}
-                                onClick={() =>
-                                  handleDownloadAttachment(attachment)
+                        {selectedIssue.images &&
+                        selectedIssue.images.length > 0 ? (
+                          selectedIssue.images.map((imgUrl, index) => {
+                            let fileName = `Attachment ${index + 1}`;
+                            try {
+                              if (selectedIssue.image_public_ids) {
+                                const publicIds = typeof selectedIssue.image_public_ids === 'string' 
+                                  ? JSON.parse(selectedIssue.image_public_ids) 
+                                  : selectedIssue.image_public_ids;
+                                if (Array.isArray(publicIds) && publicIds[index]) {
+                                  fileName = publicIds[index].split("/").pop();
                                 }
+                              }
+                            } catch (e) {
+                              console.error("Error parsing image_public_ids", e);
+                            }
+
+                            return (
+                              <Flex
+                                key={index}
+                                justify="space-between"
+                                align="center"
+                                p={2}
+                                bg={bgColor}
+                                borderRadius="md"
                               >
-                                Download
-                              </Button>
-                            </Flex>
-                          ))
+                                <HStack spacing={3}>
+                                  <Box
+                                    borderRadius="md"
+                                    overflow="hidden"
+                                    border="1px solid"
+                                    borderColor={borderColor}
+                                    boxSize="40px"
+                                  >
+                                    <img
+                                      src={imgUrl}
+                                      alt={fileName}
+                                      style={{
+                                        width: "100%",
+                                        height: "100%",
+                                        objectFit: "cover",
+                                      }}
+                                    />
+                                  </Box>
+                                  <VStack align="start" spacing={0}>
+                                    <Text fontSize="sm" fontWeight="medium" noOfLines={1}>
+                                      {fileName}
+                                    </Text>
+                                    <Text fontSize="xs" color="gray.500">
+                                      Image Attachment
+                                    </Text>
+                                  </VStack>
+                                </HStack>
+                                <HStack>
+                                  <IconButton
+                                    size="sm"
+                                    variant="ghost"
+                                    icon={<FiEye />}
+                                    onClick={() => window.open(imgUrl, "_blank")}
+                                    aria-label="View attachment"
+                                  />
+                                  <IconButton
+                                    size="sm"
+                                    variant="ghost"
+                                    icon={<FiDownload />}
+                                    onClick={() => {
+                                      const link = document.createElement("a");
+                                      link.href = imgUrl;
+                                      link.target = "_blank";
+                                      link.download = fileName;
+                                      document.body.appendChild(link);
+                                      link.click();
+                                      document.body.removeChild(link);
+                                    }}
+                                    aria-label="Download attachment"
+                                  />
+                                </HStack>
+                              </Flex>
+                            );
+                          })
                         ) : (
                           <Text
                             color="gray.500"

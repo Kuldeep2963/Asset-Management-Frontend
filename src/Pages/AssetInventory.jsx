@@ -70,6 +70,7 @@ const AssetInventory = () => {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
@@ -114,6 +115,10 @@ const AssetInventory = () => {
     }
   }, [user, searchTerm, filterCategory]);
 
+  const handleSearch = () => {
+    setSearchTerm(searchInput);
+  };
+
   const fetchAssets = async (page = 1) => {
     setLoading(true);
     try {
@@ -123,7 +128,7 @@ const AssetInventory = () => {
       if (filterCategory) params.append("category", filterCategory);
 
       const response = await api.get(`/api/assets/?${params.toString()}`);
-      
+
       if (response.data.results) {
         setAssets(response.data.results);
         setTotalCount(response.data.count);
@@ -177,7 +182,8 @@ const AssetInventory = () => {
   const handleDeleteAsset = (assetId) => {
     triggerConfirm({
       title: "Delete Asset",
-      message: "Are you sure you want to delete this asset? This action cannot be undone.",
+      message:
+        "Are you sure you want to delete this asset? This action cannot be undone.",
       onConfirm: async () => {
         try {
           await api.delete(`/api/assets/${assetId}/`);
@@ -241,24 +247,24 @@ const AssetInventory = () => {
               </Box>
             </HStack>
             {canManageAssets && (
-              <HStack spacing={4} >
-              <Button 
-                leftIcon={<FiUpload/>}
-                size={"sm"} 
-                colorScheme="green" 
-                variant={"solid"}
-                onClick={onBulkUploadOpen}
-              >
-                Bulk Upload
-              </Button>
-              <Button
-                leftIcon={<FiPlus />}
-                colorScheme="blue"
-                onClick={() => navigate("/add-asset")}
-                size="sm"
-              >
-                Add New Asset
-              </Button>
+              <HStack spacing={4}>
+                <Button
+                  leftIcon={<FiUpload />}
+                  size={"sm"}
+                  colorScheme="green"
+                  variant={"solid"}
+                  onClick={onBulkUploadOpen}
+                >
+                  Bulk Upload
+                </Button>
+                <Button
+                  leftIcon={<FiPlus />}
+                  colorScheme="blue"
+                  onClick={() => navigate("/add-asset")}
+                  size="sm"
+                >
+                  Add New Asset
+                </Button>
               </HStack>
             )}
           </Flex>
@@ -273,10 +279,23 @@ const AssetInventory = () => {
                     </InputLeftElement>
                     <Input
                       placeholder="Search assets..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          handleSearch();
+                        }
+                      }}
                     />
                   </InputGroup>
+
+                  <Button
+                    colorScheme="blue"
+                    onClick={handleSearch}
+                    leftIcon={<FiSearch />}
+                  >
+                    Search
+                  </Button>
 
                   <Select
                     placeholder="All Categories"
@@ -374,6 +393,41 @@ const AssetInventory = () => {
                               <Divider />
 
                               <Flex justify="flex-end" gap={2}>
+                                {asset.issue_count > 0 && (
+                                  <Badge
+                                    colorScheme="red"
+                                    variant="subtle"
+                                    fontSize={{ base: "xs", md: "sm" }}
+                                    px={3}
+                                    py={1}
+                                    borderRadius="md"
+                                    border="1px solid"
+                                    borderColor="red.200"
+                                    display="flex"
+                                    alignItems="center"
+                                    gap={2}
+                                    _hover={{
+                                      transform: "scale(1.05)",
+                                      transition: "transform 0.2s",
+                                    }}
+                                    cursor="pointer"
+                                    onClick={() => {
+                                      navigate(
+                                        `/issue?asset_name=${asset.asset_name}`,
+                                      );
+                                    }}
+                                  >
+                                    <Box
+                                      w={{ base: 2, md: 3 }}
+                                      h={{ base: 2, md: 3 }}
+                                      borderRadius="full"
+                                      bg="red.500"
+                                      animation="pulse 2s infinite"
+                                    />
+                                    {asset.issue_count} Issue
+                                    {asset.issue_count > 1 ? "s" : ""}
+                                  </Badge>
+                                )}
                                 <IconButton
                                   icon={<FiEye />}
                                   size="sm"
@@ -431,15 +485,63 @@ const AssetInventory = () => {
                       borderColor={borderColor}
                       borderRadius="md"
                     >
-                      <Table variant="simple" >
+                      <Table variant="simple">
                         <Thead>
                           <Tr>
-                            <Th position="sticky" top={0} bg={headerBg} zIndex={10} color={headingColor}>Asset ID</Th>
-                            <Th position="sticky" top={0} bg={headerBg} zIndex={10} color={headingColor}>Asset Name</Th>
-                            <Th position="sticky" top={0} bg={headerBg} zIndex={10} color={headingColor}>Type</Th>
-                            <Th position="sticky" top={0} bg={headerBg} zIndex={10} color={headingColor}>Category</Th>
-                            <Th position="sticky" top={0} bg={headerBg} zIndex={10} color={headingColor}>Status</Th>
-                            <Th position="sticky" top={0} bg={headerBg} zIndex={10} color={headingColor}>Actions</Th>
+                            <Th
+                              position="sticky"
+                              top={0}
+                              bg={headerBg}
+                              zIndex={10}
+                              color={headingColor}
+                            >
+                              Asset ID
+                            </Th>
+                            <Th
+                              position="sticky"
+                              top={0}
+                              bg={headerBg}
+                              zIndex={10}
+                              color={headingColor}
+                            >
+                              Asset Name
+                            </Th>
+                            <Th
+                              position="sticky"
+                              top={0}
+                              bg={headerBg}
+                              zIndex={10}
+                              color={headingColor}
+                            >
+                              Type
+                            </Th>
+                            <Th
+                              position="sticky"
+                              top={0}
+                              bg={headerBg}
+                              zIndex={10}
+                              color={headingColor}
+                            >
+                              Category
+                            </Th>
+                            <Th
+                              position="sticky"
+                              top={0}
+                              bg={headerBg}
+                              zIndex={10}
+                              color={headingColor}
+                            >
+                              Status
+                            </Th>
+                            <Th
+                              position="sticky"
+                              top={0}
+                              bg={headerBg}
+                              zIndex={10}
+                              color={headingColor}
+                            >
+                              Actions
+                            </Th>
                           </Tr>
                         </Thead>
                         <Tbody>
@@ -510,8 +612,18 @@ const AssetInventory = () => {
                                   </Menu>
                                   {asset.issue_count > 0 && (
                                     <Badge
-                                     colorScheme="red"
-                                     ml={6}
+                                      colorScheme="red"
+                                      ml={6}
+                                      cursor="pointer"
+                                      _hover={{
+                                        transform: "scale(1.05)",
+                                        transition: "transform 0.2s",
+                                      }}
+                                      onClick={() =>
+                                        navigate(
+                                          `/issue?asset_name=${asset.asset_name}`,
+                                        )
+                                      }
                                     >
                                       {asset.issue_count} Issues
                                     </Badge>
@@ -529,9 +641,16 @@ const AssetInventory = () => {
             </CardBody>
           </Card>
 
-          <Flex justify="space-between" align="center" mt={4} flexWrap="wrap" gap={4}>
+          <Flex
+            justify="space-between"
+            align="center"
+            mt={4}
+            flexWrap="wrap"
+            gap={4}
+          >
             <Text fontSize="sm" color={textColor}>
-              Showing {assets.length} of {totalCount} assets (Page {currentPage})
+              Showing {assets.length} of {totalCount} assets (Page {currentPage}
+              )
             </Text>
             <HStack spacing={2}>
               <Button

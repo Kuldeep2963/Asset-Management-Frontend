@@ -1139,13 +1139,13 @@ const UserManagement = () => {
 
   const handleExportData = async () => {
     try {
-      const response = await api.get("/api/export/users/", {
+      const response = await api.get("/api/users/export/", {
         responseType: "blob",
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `users_export_${Date.now()}.xlsx`);
+      link.setAttribute("download", `Users-${Date.now()}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();

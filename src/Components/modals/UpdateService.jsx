@@ -141,9 +141,10 @@ const UpdateService = ({ service, isOpen, onClose, onSuccess, serviceUsers = [] 
                 value={formData.status}
                 onChange={handleInputChange}
               >
-                <option value="open">Open</option>
-                <option value="on_hold">On Hold</option>
-                <option value="closed">Closed</option>
+                <option value="assigned">Assigned</option>
+              <option value="completed">Completed</option>
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
               </Select>
             </FormControl>
 

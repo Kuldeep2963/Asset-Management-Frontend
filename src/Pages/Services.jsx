@@ -361,11 +361,33 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
       setIsSubmitting(false);
     }
   };
+   
+  const handleExportData = async () => {
+    try {
+      const response = await api.get("/api/asset-service/export/", {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Services-${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      toast({
+        title: "Error exporting data",
+        description: error.message,
+        status: "error",
+        duration: 5000,
+      });
+    }
+  };
 
   const handleDeleteService = async () => {
     try {
       // Assuming you have a delete endpoint
-      // await api.delete(`/api/services/${serviceToDelete.id}/`);
+      await api.delete(`/api/asset-service/${serviceToDelete.id}/delete-service/`);
       
       toast({
         title: 'Service Deleted',
@@ -426,8 +448,7 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
       pending: 'Pending',
       in_progress: 'In Progress',
       completed: 'Completed',
-      cancelled: 'Cancelled',
-      on_hold: 'On Hold',
+      assigned: 'Assigned'
     };
     
     const Icon = icons[status] || FiClock;
@@ -673,7 +694,7 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
             <Button size={"sm"} leftIcon={<FiRefreshCw />} variant="outline" onClick={fetchAssets} isLoading={isLoading}>
               Refresh
             </Button>
-            <Button size={"sm"} leftIcon={<FiDownload /> } variant="outline" colorScheme="blue">
+            <Button size={"sm"} onClick={handleExportData} leftIcon={<FiDownload /> } variant="outline" colorScheme="blue">
               Export
             </Button>
             {cancreateService && (<Button size={"sm"} leftIcon={<FiPlus />} colorScheme="blue" onClick={onCreateOpen}>
@@ -841,9 +862,10 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
                     width="100px"
                   >
                     <option value="all">All Status</option>
-                    <option value="closed">Closed</option>
-                    <option value="on_hold">On Hold</option>
-                    <option value="open">Open</option>
+                    <option value="assigned">Assigned</option>
+              <option value="completed">Completed</option>
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
                   </Select>
                   
                   <Select 
@@ -933,19 +955,13 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
                               {service.service_user ? (
                                 <HStack>
                                   <Avatar size="xs" name={service.service_user.name} />
-                                  <Text fontSize="xs">{service.service_user.name}</Text>
+                                  <Text fontSize="xs">{service.service_user.first_name} {service.service_user.last_name}</Text>
                                 </HStack>
                               ) : (
                                 <Text color={textColor} fontSize="xs">Unassigned</Text>
                               )}
                             </HStack>
                             <HStack spacing={2}>
-                              <IconButton
-                                icon={<FiEye />}
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {/* Handle view */}}
-                              />
                               <IconButton
                                 icon={<FiEdit />}
                                 size="sm"
@@ -1053,14 +1069,7 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
                         <Td>
                           <HStack spacing={1}>
                             <Tooltip label="View Details">
-                              <IconButton
-                                icon={<FiEye />}
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  // Handle view details
-                                }}
-                              />
+                              
                             </Tooltip>
                             <Tooltip label="Edit">
                               {!(userRole == "service_user" && service.service_user.id != userdata.id) && <IconButton
@@ -1306,10 +1315,12 @@ const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
               name="status"
               value={formData.status}
               onChange={handleInputChange}
+              placeholder='Select status'
             >
-              <option value="closed">Closed</option>
-              <option value="open">Open</option>
-              <option value="on_hold">On Hold</option>
+              <option value="assigned">Assigned</option>
+              <option value="completed">Completed</option>
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
             </Select>
           </FormControl>
         </Grid>

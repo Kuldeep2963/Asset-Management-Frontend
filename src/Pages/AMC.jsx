@@ -261,16 +261,16 @@ const AMC = () => {
     onConfirmOpen();
   };
 
-  const handleExportData = async () => {
+  const handleExportData = async (type) => {
     try {
-      const endpoint = mainTab === 0 ? "/api/contracts/export/" : "/api/vendors/export/";
+      const endpoint = type === "contracts" ? "/api/contracts/export/" : "/api/vendors/export/";
       const response = await api.get(endpoint, {
         responseType: "blob",
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      const filename = mainTab === 0 ? "contracts" : "vendors";
+      const filename = type === "contracts" ? "contracts" : "vendors";
       link.setAttribute("download", `${filename}_export_${Date.now()}.csv`);
       document.body.appendChild(link);
       link.click();
@@ -283,10 +283,10 @@ const AMC = () => {
         position: "top-right",
       });
     } catch (error) {
-      console.error("Error exporting contracts:", error);
+      console.error(`Error exporting ${type}:`, error);
       toast({
         title: "Export Failed",
-        description: error.response?.data?.detail || "Failed to export contracts",
+        description: error.response?.data?.detail || `Failed to export ${type}`,
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -1524,15 +1524,7 @@ const AMC = () => {
                       >
                         Copy Contract No.
                       </MenuItem>
-                      <MenuItem
-                        icon={<FiExternalLink />}
-                        onClick={() => {
-                          // Open contract in new tab
-                          window.open(`/contracts/${contract.id}`, "_blank");
-                        }}
-                      >
-                        Open in New Tab
-                      </MenuItem>
+                      
                       <MenuDivider />
                       <MenuItem
                         icon={<FiTrash2 />}
@@ -1744,8 +1736,8 @@ const AMC = () => {
               </HStack>
             </MenuButton>
             <MenuList>
-              <MenuItem icon={<FaRegFileExcel />} onClick={handleExportData}>Export Vendors</MenuItem>
-              <MenuItem icon={<FaRegFilePdf />} onClick={handleExportData}>Export Contracts</MenuItem>
+              <MenuItem icon={<FaRegFileExcel />} onClick={() => handleExportData("vendors")}>Export Vendors</MenuItem>
+              <MenuItem icon={<FaRegFilePdf />} onClick={() => handleExportData("contracts")}>Export Contracts</MenuItem>
 
             </MenuList>
           </Menu>
