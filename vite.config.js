@@ -7,6 +7,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      workbox:{
+        cleanupOutdatedCaches:true
+      },
       includeAssets: ["assetcore2_64.png", "assetcore2_192.png", "assetcore2_384.png"],
       manifest: {
         name: "Asset Management System",
