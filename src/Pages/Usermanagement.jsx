@@ -1973,7 +1973,7 @@ const UserManagement = () => {
 )}
                     {loading.unitAdmins ? (
                       <TableSkeleton rows={3} columns={7} />
-                    ) : filteredUnitAdmins && filteredUnitAdmins>0 ? (
+                    ) : filteredUnitAdmins && filteredUnitAdmins.length>0 ? (
                       <>
                         {/* Mobile view */}
                         <SimpleGrid
