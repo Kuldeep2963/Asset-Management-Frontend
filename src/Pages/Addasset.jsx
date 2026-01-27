@@ -45,15 +45,23 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import AssignContractModal from "../Components/modals/AssignContractModal";
 import { useAuth } from "../context/AuthContext";
+import { useMemo } from "react";
+
+
+
 
 
 const AddAsset = () => {
   const { user } = useAuth();
+  const readyOnly = useMemo(() => {
+  return ["service_user", "viewer"].includes(user?.role);
+}, [user]);
   const BACKEND_API = import.meta.env.VITE_API_URL;
   const toast = useToast();
   const [searchParams] = useSearchParams();
   const assetId = searchParams.get("id");
-  const viewMode = searchParams.get("view") === "true";
+  const viewMode = readyOnly || searchParams.get("view") === "true";
+  
 
   // Color mode values
   const bgColor = useColorModeValue("gray.50", "gray.900");
@@ -512,7 +520,8 @@ const AddAsset = () => {
     w="full"
     display={{ base: "flex", md: "none" }}
   >
-    {viewMode && (
+    {!viewMode && (
+
       <Button
         colorScheme="teal"
         leftIcon={<FiTool />}
@@ -550,7 +559,7 @@ const AddAsset = () => {
     ml={viewMode ? "auto" : 0}
     display={{ base: "none", md: "flex" }}
   >
-    {viewMode && (
+    {!viewMode && (
       <Button
         colorScheme="teal"
       size="sm"
