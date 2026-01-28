@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Box,
   Card,
@@ -25,24 +25,12 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
-  Tabs,
-  TabList,
-  Tab,
-  TabPanels,
-  TabPanel,
   Progress,
   Stat,
   StatLabel,
   StatNumber,
   StatHelpText,
   StatArrow,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
   Spinner,
   Center,
   Tooltip,
@@ -79,7 +67,7 @@ import {
   MdSecurity,
   MdAssignmentTurnedIn,
 } from 'react-icons/md'
-import { format, subDays, startOfDay, endOfDay, parseISO } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import api from '../services/api'
 
 const History = () => {
@@ -89,11 +77,7 @@ const History = () => {
   const borderColor = useColorModeValue('gray.200', 'gray.700')
   const textColor = useColorModeValue('gray.600', 'gray.300')
   const headingColor = useColorModeValue('gray.800', 'white')
-  const subtleBg = useColorModeValue('gray.100', 'gray.700')
   const primaryColor = useColorModeValue('blue.600', 'blue.400')
-  const successColor = useColorModeValue('green.600', 'green.400')
-  const warningColor = useColorModeValue('orange.600', 'orange.400')
-  const errorColor = useColorModeValue('red.600', 'red.400')
 
   // State
   const [selectedTimeframe, setSelectedTimeframe] = useState('7days')
@@ -101,13 +85,96 @@ const History = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [activities, setActivities] = useState([])
-  const [stats, setStats] = useState({
-    totalActivities: 0,
-    completedTasks: 0,
-    pendingActions: 0,
-    assetUpdates: 0,
-    trend: 12.5, // percentage increase
-  })
+
+  // Calculate recent users from activities
+  const recentUsers = useMemo(() => {
+    if (!activities?.results) return []
+    
+    const userActionCounts = {}
+    
+    activities.results.forEach(activity => {
+      if (activity.actor_name) {
+        if (!userActionCounts[activity.actor_name]) {
+          userActionCounts[activity.actor_name] = {
+            name: activity.actor_name,
+            count: 0,
+            role: activity.actor_role || 'User',
+            department: activity.department || 'General',
+            lastActivity: activity.created_at
+          }
+        }
+        userActionCounts[activity.actor_name].count++
+        
+        if (activity.created_at > userActionCounts[activity.actor_name].lastActivity) {
+          userActionCounts[activity.actor_name].lastActivity = activity.created_at
+        }
+      }
+    })
+    
+    return Object.values(userActionCounts)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5)
+  }, [activities])
+
+  // Calculate active users today
+  const activeUsersToday = useMemo(() => {
+    if (!activities?.results) return 0
+    
+    const today = new Date().toISOString().split('T')[0]
+    const uniqueUsersToday = new Set()
+    
+    activities.results.forEach(activity => {
+      if (activity.actor_name && activity.created_at) {
+        const activityDate = activity.created_at.split('T')[0]
+        if (activityDate === today) {
+          uniqueUsersToday.add(activity.actor_name)
+        }
+      }
+    })
+    
+    return uniqueUsersToday.size
+  }, [activities])
+
+  // Calculate activity type distribution
+  const activityTypeDistribution = useMemo(() => {
+    if (!activities?.results) return []
+    
+    const typeCounts = {}
+    
+    activities.results.forEach(activity => {
+      const type = activity.action_type || 'unknown'
+      typeCounts[type] = (typeCounts[type] || 0) + 1
+    })
+    
+    return Object.entries(typeCounts)
+      .map(([type, count]) => ({
+        type,
+        count,
+        percentage: Math.round((count / activities.results.length) * 100)
+      }))
+      .sort((a, b) => b.count - a.count)
+  }, [activities])
+
+  // Calculate department distribution
+  const departmentDistribution = useMemo(() => {
+    if (!activities?.results) return []
+    
+    const deptCounts = {}
+    
+    activities.results.forEach(activity => {
+      const dept = activity.department || 'Unknown Department'
+      deptCounts[dept] = (deptCounts[dept] || 0) + 1
+    })
+    
+    return Object.entries(deptCounts)
+      .map(([dept, count]) => ({
+        dept,
+        count,
+        percentage: Math.round((count / activities.results.length) * 100)
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5) // Top 5 departments
+  }, [activities])
 
   // Activity categories
   const activityCategories = [
@@ -134,7 +201,7 @@ const History = () => {
   const fetchActivities = async () => {
     setIsLoading(true)
     try {
-      const response = await api.get('/api/activity-logs/')
+      const response = await api.get('/api/activity_logs/')
       setActivities(response.data)
     } catch (error) {
       console.error('Error fetching activity logs:', error)
@@ -148,7 +215,7 @@ const History = () => {
   }, [])
 
   // Filter activities
-  const filteredActivities = activities.filter(activity => {
+  const filteredActivities = activities?.results?.filter(activity => {
     const matchesCategory = selectedCategory === 'all' || activity.action_type === selectedCategory
     const matchesSearch = searchQuery === '' || 
       activity.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -157,27 +224,7 @@ const History = () => {
       activity.actor_name.toLowerCase().includes(searchQuery.toLowerCase())
     
     return matchesCategory && matchesSearch
-  })
-
-  // Calculate stats
-  useEffect(() => {
-    const calculateStats = () => {
-      const total = filteredActivities.length
-      const completed = filteredActivities.filter(a => a.status === 'completed' || a.action_type === 'asset_created').length
-      const pending = filteredActivities.filter(a => a.status === 'scheduled' || a.status === 'pending' || a.action_type === 'issue_assigned').length
-      const updates = filteredActivities.filter(a => a.category === 'updates' || a.action_type === 'asset_created').length
-      
-      setStats({
-        totalActivities: total,
-        completedTasks: completed,
-        pendingActions: pending,
-        assetUpdates: updates,
-        trend: 12.5,
-      })
-    }
-    
-    calculateStats()
-  }, [filteredActivities])
+  }) || []
 
   // Format time
   const formatTime = (isoString) => {
@@ -205,9 +252,9 @@ const History = () => {
   // Get severity color
   const getSeverityColor = (severity) => {
     switch(severity) {
-      case 'high': return errorColor
-      case 'medium': return warningColor
-      case 'low': return successColor
+      case 'high': return 'red.500'
+      case 'medium': return 'orange.500'
+      case 'low': return 'green.500'
       default: return textColor
     }
   }
@@ -235,6 +282,18 @@ const History = () => {
   // Handle refresh
   const handleRefresh = () => {
     fetchActivities()
+  }
+
+  // Get icon for activity type
+  const getActivityIcon = (type) => {
+    const category = activityCategories.find(c => c.id === type)
+    return category ? category.icon : FiActivity
+  }
+
+  // Get color for activity type
+  const getActivityColor = (type) => {
+    const category = activityCategories.find(c => c.id === type)
+    return category ? category.color : primaryColor
   }
 
   return (
@@ -269,67 +328,6 @@ const History = () => {
           </Button>
         </HStack>
       </Flex>
-
-      {/* Stats Cards */}
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 5 }} spacing={4} mb={6}>
-        <Card bg={cardBg} border="1px" borderColor={borderColor}>
-          <CardBody>
-            <Stat>
-              <StatLabel color={textColor}>Total Activities</StatLabel>
-              <StatNumber color={headingColor}>{stats.totalActivities}</StatNumber>
-              <StatHelpText>
-                <StatArrow type="increase" />
-                {stats.trend}%
-              </StatHelpText>
-            </Stat>
-          </CardBody>
-        </Card>
-
-        <Card bg={cardBg} border="1px" borderColor={borderColor}>
-          <CardBody>
-            <Stat>
-              <StatLabel color={textColor}>Completed Tasks</StatLabel>
-              <StatNumber color="green.500">{stats.completedTasks}</StatNumber>
-              <StatHelpText>
-                {stats.totalActivities > 0 
-                  ? `${Math.round((stats.completedTasks / stats.totalActivities) * 100)}% success rate`
-                  : 'No data'
-                }
-              </StatHelpText>
-            </Stat>
-          </CardBody>
-        </Card>
-
-        <Card bg={cardBg} border="1px" borderColor={borderColor}>
-          <CardBody>
-            <Stat>
-              <StatLabel color={textColor}>Pending Actions</StatLabel>
-              <StatNumber color="orange.500">{stats.pendingActions}</StatNumber>
-              <StatHelpText>Requires attention</StatHelpText>
-            </Stat>
-          </CardBody>
-        </Card>
-
-        <Card bg={cardBg} border="1px" borderColor={borderColor}>
-          <CardBody>
-            <Stat>
-              <StatLabel color={textColor}>Asset Updates</StatLabel>
-              <StatNumber color="blue.500">{stats.assetUpdates}</StatNumber>
-              <StatHelpText>This period</StatHelpText>
-            </Stat>
-          </CardBody>
-        </Card>
-
-        <Card bg={cardBg} border="1px" borderColor={borderColor}>
-          <CardBody>
-            <Stat>
-              <StatLabel color={textColor}>Avg. Response Time</StatLabel>
-              <StatNumber color="purple.500">4.2h</StatNumber>
-              <StatHelpText>↓ 18% from last week</StatHelpText>
-            </Stat>
-          </CardBody>
-        </Card>
-      </SimpleGrid>
 
       {/* Filters and Controls */}
       <Card bg={cardBg} border="1px" borderColor={borderColor} mb={6}>
@@ -571,71 +569,97 @@ const History = () => {
           </Card>
         </Box>
 
-        {/* Sidebar - Summary and Insights */}
+        {/* Sidebar - Analytics Cards */}
         <Box>
+          {/* Activity Type Distribution */}
           <Card bg={cardBg} border="1px" borderColor={borderColor} mb={6}>
             <CardHeader>
               <Heading size="md" color={headingColor}>
-                📊 Activity Insights
+                📊 Activity Types
               </Heading>
             </CardHeader>
             <CardBody>
-              <VStack spacing={4} align="stretch">
-                <Box>
-                  <Text fontSize="sm" color={textColor} mb={2}>
-                    Activity Distribution
-                  </Text>
-                  <VStack spacing={2} align="stretch">
-                    {activityCategories.slice(1).map(category => {
-                      const count = filteredActivities.filter(a => a.action_type === category.id).length
-                      const percentage = filteredActivities.length > 0 
-                        ? Math.round((count / filteredActivities.length) * 100) 
-                        : 0
-                      
-                      return (
-                        <Box key={category.id}>
-                          <Flex justify="space-between" mb={1}>
-                            <HStack spacing={2}>
-                              <Icon as={category.icon} color={category.color} boxSize={3} />
-                              <Text fontSize="sm">{category.label}</Text>
-                            </HStack>
-                            <Text fontSize="sm" fontWeight="semibold">
-                              {count} ({percentage}%)
-                            </Text>
-                          </Flex>
-                          <Progress 
-                            value={percentage} 
-                            colorScheme={category.color.split('.')[0]} 
-                            size="sm"
-                            borderRadius="full"
+              {isLoading ? (
+                <Center h="100px">
+                  <Spinner size="sm" />
+                </Center>
+              ) : activityTypeDistribution.length === 0 ? (
+                <Text fontSize="sm" color={textColor} textAlign="center">
+                  No activity data available
+                </Text>
+              ) : (
+                <VStack spacing={3} align="stretch">
+                  {activityTypeDistribution.slice(0, 5).map((item, index) => (
+                    <Box key={index}>
+                      <Flex justify="space-between" mb={1}>
+                        <HStack spacing={2}>
+                          <Icon 
+                            as={getActivityIcon(item.type)} 
+                            color={getActivityColor(item.type)} 
+                            boxSize={3} 
                           />
-                        </Box>
-                      )
-                    })}
-                  </VStack>
-                </Box>
+                          <Text fontSize="sm" textTransform="capitalize">
+                            {item.type.replace('_', ' ')}
+                          </Text>
+                        </HStack>
+                        <Text fontSize="sm" fontWeight="semibold">
+                          {item.count} ({item.percentage}%)
+                        </Text>
+                      </Flex>
+                      <Progress 
+                        value={item.percentage} 
+                        colorScheme={getActivityColor(item.type).split('.')[0]} 
+                        size="sm"
+                        borderRadius="full"
+                      />
+                    </Box>
+                  ))}
+                </VStack>
+              )}
+            </CardBody>
+          </Card>
 
-                <Divider borderColor={borderColor} />
-
-                <Box>
-                  <Text fontSize="sm" color={textColor} mb={3}>
-                    Top Performing Departments
-                  </Text>
-                  <VStack spacing={3} align="stretch">
-                    {['Radiology', 'Biomedical', 'Maintenance', 'Procurement'].map(dept => (
-                      <HStack key={dept} justify="space-between">
-                        <Text fontSize="sm">{dept}</Text>
-                        <Badge colorScheme="green">
-                          <HStack spacing={1}>
-                            <FiTrendingUp />
-                            <Text>98%</Text>
-                          </HStack>
-                        </Badge>
-                      </HStack>
-                    ))}
-                  </VStack>
-                </Box>
-              </VStack>
+          {/* Department Distribution */}
+          <Card bg={cardBg} border="1px" borderColor={borderColor} mb={6}>
+            <CardHeader>
+              <Heading size="md" color={headingColor}>
+                🏢 Department Activity
+              </Heading>
+            </CardHeader>
+            <CardBody>
+              {isLoading ? (
+                <Center h="100px">
+                  <Spinner size="sm" />
+                </Center>
+              ) : departmentDistribution.length === 0 ? (
+                <Text fontSize="sm" color={textColor} textAlign="center">
+                  No department data available
+                </Text>
+              ) : (
+                <VStack spacing={3} align="stretch">
+                  {departmentDistribution.map((dept, index) => (
+                    <Box key={index}>
+                      <Flex justify="space-between" mb={1}>
+                        <HStack spacing={2}>
+                          <Icon as={FiUser} color="blue.500" boxSize={3} />
+                          <Text fontSize="sm">
+                            {dept.dept}
+                          </Text>
+                        </HStack>
+                        <Text fontSize="sm" fontWeight="semibold">
+                          {dept.count} ({dept.percentage}%)
+                        </Text>
+                      </Flex>
+                      <Progress 
+                        value={dept.percentage} 
+                        colorScheme="blue"
+                        size="sm"
+                        borderRadius="full"
+                      />
+                    </Box>
+                  ))}
+                </VStack>
+              )}
             </CardBody>
           </Card>
 
@@ -648,16 +672,22 @@ const History = () => {
             </CardHeader>
             <CardBody>
               <VStack spacing={4} align="stretch">
-                <HStack spacing={3}>
+                <HStack spacing={3} justify="space-between">
                   <AvatarGroup size="sm" max={4}>
-                    <Avatar name="Dr. Sarah Johnson" />
-                    <Avatar name="John Technician" />
-                    <Avatar name="Audit Team" />
-                    <Avatar name="System Auto" />
-                    <Avatar name="Finance Dept" />
+                    {recentUsers.slice(0, 4).map((user, index) => (
+                      <Avatar 
+                        key={index} 
+                        name={user.name}
+                        src={user.avatar}
+                        title={`${user.name} (${user.count} actions)`}
+                      />
+                    ))}
+                    {recentUsers.length > 4 && (
+                      <Avatar name={`+${recentUsers.length - 4} more`} />
+                    )}
                   </AvatarGroup>
                   <Text fontSize="sm" color={textColor}>
-                    12 active users today
+                    {activeUsersToday} active users today
                   </Text>
                 </HStack>
                 
@@ -665,21 +695,27 @@ const History = () => {
                 
                 <Box>
                   <Text fontSize="sm" color={textColor} mb={2}>
-                    Most Active Today
+                    Most Active Users
                   </Text>
-                  {[
-                    { name: 'Dr. Sarah Johnson', actions: 15, role: 'Radiologist' },
-                    { name: 'John Technician', actions: 12, role: 'Biomedical Engineer' },
-                    { name: 'System Auto', actions: 8, role: 'Automated System' },
-                  ].map((user, index) => (
-                    <HStack key={index} justify="space-between" mb={2}>
-                      <Box>
-                        <Text fontSize="sm" fontWeight="medium">{user.name}</Text>
-                        <Text fontSize="xs" color={textColor}>{user.role}</Text>
-                      </Box>
-                      <Badge colorScheme="blue">{user.actions} actions</Badge>
-                    </HStack>
-                  ))}
+                  {recentUsers.length > 0 ? (
+                    recentUsers.map((user, index) => (
+                      <HStack key={index} justify="space-between" mb={2}>
+                        <Box>
+                          <Text fontSize="sm" fontWeight="medium">{user.name}</Text>
+                          <Text fontSize="xs" color={textColor}>
+                            {user.department || user.role}
+                          </Text>
+                        </Box>
+                        <Badge colorScheme="blue">
+                          {user.count} action{user.count !== 1 ? 's' : ''}
+                        </Badge>
+                      </HStack>
+                    ))
+                  ) : (
+                    <Text fontSize="sm" color={textColor} textAlign="center" py={2}>
+                      No user activity data available
+                    </Text>
+                  )}
                 </Box>
               </VStack>
             </CardBody>
